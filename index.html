@@ -155,7 +155,7 @@ const camera=new THREE.PerspectiveCamera(40,1,0.1,300);
 // ---------- camera rig: fixed angle, the ground stays under your finger ----------
 const YAW=0, PITCH=0.6;   // straight on, facing the press house
 const cam={tx:0,tz:1.5,dist:19};
-const BOUND={x0:-22,x1:24,z0:-10,z1:12}, DMIN=7, DMAX=36;
+const BOUND={x0:-30,x1:34,z0:-10,z1:12}, DMIN=7, DMAX=36;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function applyCam(){
   cam.dist=clamp(cam.dist,DMIN,DMAX); cam.tx=clamp(cam.tx,BOUND.x0,BOUND.x1); cam.tz=clamp(cam.tz,BOUND.z0,BOUND.z1);
@@ -169,7 +169,7 @@ new ResizeObserver(resize).observe(stage); resize(); applyCam();
 
 scene.add(new THREE.HemisphereLight('#fff4dc','#7a6247',0.8));
 const sun=new THREE.DirectionalLight('#fff1d0',1.0); sun.position.set(14,22,10); sun.castShadow=true;
-sun.shadow.mapSize.set(1024,1024); Object.assign(sun.shadow.camera,{left:-26,right:26,top:26,bottom:-26,near:1,far:70}); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.02;
+sun.shadow.mapSize.set(1536,1536); Object.assign(sun.shadow.camera,{left:-34,right:36,top:26,bottom:-26,near:1,far:70}); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.02;
 scene.add(sun);
 
 // ---------- builders ----------
@@ -244,7 +244,7 @@ function tree(x,z,s=1){
     }
   }
 }
-[[-12,-8],[-22,-3],[-14,-15],[-8,-16],[-25,10],[19,-7],[25,11],[12,-16],[-4,-12],[4,-13],[26,1],[-24,-6],[0,-17],[-27,3],[26,-7],[-19,-11],[20,-12]].forEach(([x,z])=>tree(x,z,0.9+rnd()*0.3));
+[[-12,-9],[-31,-9],[-14,-15],[-8,-16],[-25,10],[21,-9],[25,11],[12,-16],[-4,-12],[4,-13],[37,-1],[-24,-8],[0,-17],[-35,3],[29,-9],[-19,-11],[20,-14]].forEach(([x,z])=>tree(x,z,0.9+rnd()*0.3));
 { const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:'#fff',roughness:.85,flatShading:true}),leafList.length); im.castShadow=true; im.receiveShadow=true;
   leafList.forEach((l,i)=>{ dm.position.copy(l.p); dm.rotation.set(rnd(),rnd()*6,rnd()); dm.scale.set(l.r*1.15,l.r*0.72,l.r); dm.updateMatrix(); im.setMatrixAt(i,dm.matrix); im.setColorAt(i,l.c); });
   scene.add(im);
@@ -498,8 +498,8 @@ function buildModern(big=false, bottling=false){
 
 // ---------- extension bays: each one has room for two more machines ----------
 function bayX(b){ const lv=L(), right=b<4, j=right?b:b-4; return (right?1:-1)*(lv.hw+lv.bw*(j+0.5)); }
-// slot 0 of a bay is at the back (presses go there), slot 1 in front (mills), nudged sideways so neither hides the other
-const slotPos=s=>[bayX(Math.floor(s/2))+(s%2?0.12:-0.12)*L().bw, s%2?1.3:-2.0];
+// each extension holds two full-size machines side by side: slot 0 on the left (mills go there), slot 1 on the right (presses)
+const slotPos=s=>[bayX(Math.floor(s/2))+L().so[s%2], s%2?-1.5:-1.0];
 function buildBay(parent,b,last){
   const lv=L(), side=b<4?1:-1, bw=lv.bw, cx=bayX(b);
   const sty=G.lvl===0?{floor:'#b9a98a',wall:'#d6c7a6',beam:'#7a5a3a',h:2.4}:G.lvl===1?{floor:'#bdb6a8',wall:'#ece6d8',beam:'#55606a',h:2.8}:{floor:'#9aa4a8',wall:'#eef1f2',beam:'#7a858c',h:3.4};
@@ -515,24 +515,24 @@ function buildBay(parent,b,last){
 }
 
 const LEVELS=[
-  {name:'Village Stone Press', sign:'Abu Yousef Press', cm:1, batch:1, price:[620,60], unit:'tin', carry:'sack', move:25000, maxU:2, hw:6.5, bw:4.4,
-   mk:{mill:(p,x,z)=>stoneMill(p,x,z,0.6), press:(p,x,z)=>screwPress(p,x,z,0.85)},
+  {name:'Village Stone Press', sign:'Abu Yousef Press', cm:1, batch:1, price:[620,60], unit:'tin', carry:'sack', move:25000, maxU:2, hw:6.5, bw:11.5, so:[-2.6,2.8],
+   mk:{mill:stoneMill, press:screwPress},
    names:{intake:['Intake','Sack store'],mill:['Stone mill','Mill stone'],press:['Screw press','Screw press'],shop:['Shop','Counter']},
    next:'The Family Mill has electric crushers and hydraulic presses, with room for up to 3 of each. Each delivery and sale is double.', build:buildVillage, wood:true},
-  {name:'Family Mill', sign:'Abu Yousef Family Mill', cm:3, batch:2, price:[780,70], unit:'tin', carry:'sack', move:90000, maxU:3, hw:7, bw:4.2,
-   mk:{mill:(p,x,z)=>famMill(p,x,z,0.72), press:(p,x,z)=>hydPress(p,x,z,0.85)},
+  {name:'Family Mill', sign:'Abu Yousef Family Mill', cm:3, batch:2, price:[780,70], unit:'tin', carry:'sack', move:90000, maxU:3, hw:7, bw:8.5, so:[-1.6,2.6],
+   mk:{mill:famMill, press:hydPress},
    names:{intake:['Intake','Sack store'],mill:['Crusher & mixer','Crusher'],press:['Hydraulic press','Hydraulic press'],shop:['Shop','Counter']},
    next:'The Modern Mill washes, crushes and mixes in steel, then a 2-phase decanter spins out the oil. Up to 4 lines. It sells cases of bottles.', build:buildFamily, wood:true},
-  {name:'Modern 2-Phase Mill', sign:'Abu Yousef Oil Mill', cm:8, batch:3, price:[900,80], unit:'case', carry:'crate', move:280000, maxU:4, hw:7.2, bw:3.4,
-   mk:{mill:(p,x,z)=>modMill(p,x,z,0.95), press:(p,x,z)=>modPress(p,x,z,0.95)},
+  {name:'Modern 2-Phase Mill', sign:'Abu Yousef Oil Mill', cm:8, batch:3, price:[900,80], unit:'case', carry:'crate', move:280000, maxU:4, hw:7.2, bw:6.6, so:[-1.6,1.7],
+   mk:{mill:modMill, press:modPress},
    names:{intake:['Intake','Crate store'],mill:['Wash & mix','Crusher line'],press:['Decanter','Decanter'],shop:['Shop','Shop']},
    next:'The Cooperative Factory has room for up to 6 lines and serves the whole region.', build:()=>buildModern(false), wood:false},
-  {name:'Cooperative Factory', sign:'Abu Yousef Cooperative', cm:20, batch:5, price:[1000,90], unit:'case', carry:'crate', move:750000, maxU:6, hw:7.2, bw:3.4,
-   mk:{mill:(p,x,z)=>modMill(p,x,z,0.95), press:(p,x,z)=>modPress(p,x,z,0.95)},
+  {name:'Cooperative Factory', sign:'Abu Yousef Cooperative', cm:20, batch:5, price:[1000,90], unit:'case', carry:'crate', move:750000, maxU:6, hw:7.2, bw:6.6, so:[-1.6,1.7],
+   mk:{mill:modMill, press:modPress},
    names:{intake:['Intake','Crate store'],mill:['Wash & mix','Crusher line'],press:['Decanters','Decanter'],shop:['Sales','Sales office']},
    next:'Export brand: your own bottling line, up to 8 lines and containers shipped abroad.', build:()=>buildModern(true), wood:false},
-  {name:'Export Brand', sign:'Abu Yousef Olive Oil', cm:45, batch:8, price:[1200,110], unit:'case', carry:'crate', move:2500000, maxU:8, hw:7.2, bw:3.4, final:true,
-   mk:{mill:(p,x,z)=>modMill(p,x,z,0.95), press:(p,x,z)=>modPress(p,x,z,0.95)},
+  {name:'Export Brand', sign:'Abu Yousef Olive Oil', cm:45, batch:8, price:[1200,110], unit:'case', carry:'crate', move:2500000, maxU:8, hw:7.2, bw:6.6, so:[-1.6,1.7], final:true,
+   mk:{mill:modMill, press:modPress},
    names:{intake:['Intake','Crate store'],mill:['Wash & mix','Crusher line'],press:['Decanters','Decanter'],shop:['Export','Export desk']},
    next:'Reach 2,500,000 ILS to make Abu Yousef the best-known olive oil in the region.', build:()=>buildModern(true,true), wood:false},
 ];
@@ -685,7 +685,7 @@ const pressTime=i=>PRESS_T[G.st.press.u[i]-1]*wSpeed('press',i);
 const roomFree=()=>G.bays*2-G.slots.filter(Boolean).length;
 const addCost=k=>Math.round(BASE[k].add*cm()*Math.pow(1.5,N(k)-1)/50)*50;
 const bayCost=()=>Math.round(4000*cm()*Math.pow(1.35,G.bays)/50)*50;
-function freeSlot(k){ const pref=k==='press'?0:1; let any=-1;
+function freeSlot(k){ const pref=k==='press'?1:0; let any=-1;
   for (let s=0;s<G.bays*2;s++) if (!G.slots[s]){ if (s%2===pref) return s; if (any<0) any=s; }
   return any; }
 const units=n=>n*L().batch;
@@ -705,7 +705,7 @@ const runs={mill:[null],press:[null]}, mh={mill:[],press:[]}, mpos={mill:[],pres
 const queue=[], leaving=[], customers=[];
 let arriveT=2, custT=10, birdT=6;
 const qSlot=i=>[-5.4-i*1.3,5.4];
-const cSlot=i=>[4.6+i*1.2,4.5];
+const cSlot=i=>[4.8,4.6+i*1.05];
 const MAINPOS={mill:[-2.2,3.9,-0.9], press:[2.9,4.7,-1.6]};
 
 // ---------- overlays ----------
@@ -804,7 +804,7 @@ function clearPeople(){ for (const arr of [queue,leaving,customers]){ arr.forEac
 function wSpot(k,i){
   if (!MACH(k) || !i) return {p:BASE[k].wPos, f:BASE[k].wFace};
   const [x,,z]=mpos[k][i];
-  return z<0 ? {p:[x-L().bw*0.36,0.3,z+0.9], f:2.2} : {p:[x,0.3,z+1.75], f:Math.PI};
+  return {p:[x+0.4,0.3,z+(G.lvl===0&&k==='mill'?3.4:2.1)], f:Math.PI};   // in front of the machine, clear of the donkey's path
 }
 function spawnWorker(k,i=0){
   const key=MACH(k)?k+i:k; if (workers[key]) scene.remove(workers[key].g);
@@ -820,7 +820,7 @@ function buildExtras(){
   const rightBays=Math.min(4,G.bays);
   for (let b=0;b<G.bays;b++) buildBay(EXG,b, b===rightBays-1 || b===G.bays-1);
   for (const k of ['mill','press']){ mh[k]=[mainHooks[k]]; mpos[k]=[MAINPOS[k]]; }
-  G.slots.forEach((k,s)=>{ if (!k) return; const [x,z]=slotPos(s); mh[k].push(L().mk[k](EXG,x,z)); mpos[k].push([x,3.6,z]); hitBox(k,L().bw-0.4,3,3,x,1.3,z,true); });
+  G.slots.forEach((k,s)=>{ if (!k) return; const [x,z]=slotPos(s); mh[k].push(L().mk[k](EXG,x,z)); mpos[k].push([x,k==='press'?4.6:3.9,z]); hitBox(k,L().bw/2-0.3,3.4,4.4,x,1.5,z,true); });
   for (const k of ['mill','press']){
     while (runs[k].length<mh[k].length) runs[k].push(null);
     runs[k].length=mh[k].length;
@@ -854,7 +854,11 @@ function moveUp(){
 }
 
 // ---------- simulation ----------
-function arriveGap(){ return Math.max(FLOOR[G.lvl], 14*Math.exp(-G.lt/600)); }
+function capGap(){
+  const tp=(k,T)=>G.st[k].u.reduce((a,l,i)=>a+1/(T[l-1]*wSpeed(k,i)+(G.st[k].w[i]?delayOf(k,G.st[k].w[i]):2.5)),0);
+  return 1/Math.min(tp('mill',MILL_T),tp('press',PRESS_T));
+}
+function arriveGap(){ return Math.max(FLOOR[G.lvl], Math.min(14*Math.exp(-G.lt/600), capGap()*1.05)); }
 function spawnFarmer(){
   const woman=Math.random()<0.35;
   const f=makePerson({woman,hat:pick(['kef','kef','cap','straw']),moustache:!woman&&Math.random()<.6,carry:L().carry});
@@ -879,10 +883,10 @@ function update(dt){
   runs.press.forEach((r,i)=>{ if (r){ r.t+=dt; if (r.t>=r.dur){ runs.press[i]=null; tinStock=Math.min(STOCK,tinStock+1); floatAt(5,2.6,0.6,`+${units(1)} ${unitWord(units(1))}`,'w'); sfx('drip'); } } });
   custT-=dt; if (custT<=0){
     const base=Math.max(6,12-G.lt/40)/N('press')/(tinStock>=6?1.5:1); custT=Math.max(1.2,base)*(0.8+Math.random()*0.4);
-    if (customers.filter(c=>c.phase<2).length<6){ const woman=Math.random()<0.5; const c=makePerson({woman,hat:pick(['straw','kef','cap']),moustache:!woman&&Math.random()<.5,unit:L().unit}); c.g.position.set(22,0,4.8); c.phase=0; c.wait=0; customers.push(c); } }
+    if (customers.filter(c=>c.phase<2).length<6){ const woman=Math.random()<0.5; const c=makePerson({woman,hat:pick(['straw','kef','cap']),moustache:!woman&&Math.random()<.5,unit:L().unit}); c.g.position.set(16,0,15); c.phase=0; c.wait=0; customers.push(c); } }
   customers.filter(c=>c.phase<2).forEach((c,i)=>{ const [x,z]=cSlot(i); if (moveTo(c,x,z,2.6,dt)){ face(c,Math.PI,dt); if (i===0) c.phase=1; } c.wait+=dt;
     if (c.wait>35){ c.phase=2; floatAt(c.g.position.x,2.8,c.g.position.z,'Left without oil','bad'); } });
-  for (let i=customers.length-1;i>=0;i--){ const c=customers[i]; if (c.phase===2 && moveTo(c,24,5.6,2.6,dt)){ scene.remove(c.g); customers.splice(i,1); } }
+  for (let i=customers.length-1;i>=0;i--){ const c=customers[i]; if (c.phase===2 && moveTo(c,30,5.0,2.6,dt)){ scene.remove(c.g); customers.splice(i,1); } }
   for (const key in workers){ const w=workers[key]; if (!w) continue; const k=w.k, i=w.i;
     face(w,w.face,dt); w.arms[1].rotation.x*=0.92;
     if (cool[key]>0){ cool[key]-=dt; continue; }
@@ -988,7 +992,9 @@ const saved=load();
 if (saved){ G={...fresh(),...saved}; delete G.savedAt;
   for (const k of ['mill','press']){ if (!G.st[k].u) G.st[k]={u:[G.st[k].m||1],w:G.st[k].w||0};
     if (!Array.isArray(G.st[k].w)) G.st[k].w=G.st[k].u.map((_,i)=>i?0:(G.st[k].w||0)); }
-  if (!Array.isArray(G.slots)) G.slots=[]; G.bays=G.bays||0; }
+  if (!Array.isArray(G.slots)) G.slots=[]; G.bays=G.bays||0;
+  // older saves put presses in slot 0; mills now go on the left (same-type order is unchanged, so levels stay matched)
+  for (let b=0;b<G.bays;b++) if (G.slots[2*b]==='press' && G.slots[2*b+1]==='mill'){ G.slots[2*b]='mill'; G.slots[2*b+1]='press'; } }
 setupLevel();
 if (saved && saved.savedAt){
   const away=Math.min(3*3600,(Date.now()-saved.savedAt)/1000), earned=offlineRate()*away;
