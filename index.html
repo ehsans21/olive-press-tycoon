@@ -710,7 +710,7 @@ const workers={}, cool={};
 let sacks=0, pasteReady=0, tinStock=0, intakeBusy=0, t=0;
 const runs={mill:[null],press:[null]}, mh={mill:[],press:[]}, mpos={mill:[],press:[]};
 const queue=[], leaving=[], customers=[];
-let arriveT=2, custT=10, birdT=6, groupN=3, groupT=0;
+let lostSeen=-1, lostAt=-99, arriveT=2, custT=10, birdT=6, groupN=3, groupT=0;
 const qSlot=i=>[-5.4-i*1.3,5.4];
 const cSlot=i=>[4.8,4.6+i*1.05];
 const MAINPOS={mill:[-2.2,3.9,-0.9], press:[2.9,4.7,-1.6]};
@@ -870,9 +870,9 @@ function capGap(maxed){
   return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
 }
 // demand starts ~40% above a fresh level's single mill and press, then climbs over 10-30 min
-// to just above a fully maxed level: every upgrade cuts your losses; only a maxed level keeps up
+// to just under a fully maxed level: every upgrade cuts your losses; a maxed level keeps a long line but loses no one
 function arriveGap(){
-  const top=capGap(true)/1.05, start=Math.max(MILL_T[0],PRESS_T[0])/1.4, ramp=600+300*G.lvl;
+  const top=capGap(true)/0.97, start=Math.max(MILL_T[0],PRESS_T[0])/1.4, ramp=600+300*G.lvl;
   return Math.max(top, start*Math.pow(top/start, Math.min(1,G.lt/ramp)));
 }
 function spawnFarmer(){
@@ -983,7 +983,7 @@ function ui(){
   $('cSacks').textContent=`${L().carry==='sack'?'Sacks':'Crates'} ${units(sacks)}/${units(pileCap())}`;
   const pp=$('cPaste'); pp.textContent=`Paste ${pasteReady}/${pasteCap()}`; pp.className='chip'+(pasteReady>=pasteCap()?' bad':'');
   $('cTins').textContent=`${L().unit==='tin'?'Tins':'Cases'} ${units(tinStock)}`;
-  const l=$('cLost'); l.textContent=`Lost ${G.lost}`; l.className='chip'+(G.lost?' bad':'');
+  const l=$('cLost'); if (G.lost!==lostSeen){ lostSeen=G.lost; lostAt=t; } l.textContent=`Lost ${G.lost}`; l.className='chip'+(G.lost&&t-lostAt<30?' bad':'');
   for (const k in BASE){ const s=G.st[k]; $(k+'-ds').textContent=MACH(k)?`${N(k)} mach · ${s.w.filter(Boolean).length} wkr`:`Lv ${s.m} · ${s.w?'worker '+s.w:'no worker'}`; $(k+'-dot').hidden=!affordable(k); }
   if (G.money>=L().move && G.lvNote!==G.lvl && !(L().final&&G.won)){ G.lvNote=G.lvl; const e=$('lvPop'); e.textContent=L().final?'Final goal ready! Tap to finish':`Level ${G.lvl+2} unlocked! Tap to move up`; e.hidden=false; clearTimeout(e.t); e.t=setTimeout(()=>e.hidden=true,9000); sfx('up'); }
   $('miniBar').style.width=Math.min(100,G.money/L().move*100)+'%';
