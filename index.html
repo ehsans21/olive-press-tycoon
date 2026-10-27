@@ -865,7 +865,7 @@ function moveUp(){
 function capGap(maxed){
   const lv=L(), mw=MAX;
   const tp=(k,T)=>{ const n=maxed?lv.maxU:N(k); let a=0;
-    for (let i=0;i<n;i++){ const l=maxed?MAX:G.st[k].u[i], w=maxed?mw:G.st[k].w[i]; a+=1/(T[l-1]*(w?1-0.06*(w-1):1)); } return a; };   // a worker re-arms during the run, so only tapping adds a gap
+    for (let i=0;i<n;i++){ const l=maxed?MAX:G.st[k].u[i], w=maxed?mw:G.st[k].w[i]; a+=1/(T[l-1]*(w?1-0.06*(w-1):1)+(w?W_DELAY[w-1]:0)); } return a; };   // the worker reloads after each batch
   const q=k=>{ const w=maxed?mw:G.st[k].w; return w?Math.max(Q_DELAY[w-1],0.55):0.8; };   // 0.55 s for the next person to step up
   return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
 }
@@ -907,7 +907,9 @@ function update(dt){
   for (const key in workers){ const w=workers[key]; if (!w) continue; const k=w.k, i=w.i;
     face(w,w.face,dt); w.arms[1].rotation.x*=0.92;
     if (cool[key]>0){ cool[key]-=dt; continue; }
-    if (MACH(k)){ if (!runs[k][i] && hasInput(k)){ startMachine(k,i); cool[key]=delayOf(k,G.st[k].w[i]); w.arms[1].rotation.x=-1.2; } }
+    if (MACH(k)){ if (runs[k][i]) w.busy=true;
+      else if (w.busy){ w.busy=false; cool[key]=delayOf(k,G.st[k].w[i]); }   // a slower worker takes longer to reload after each batch
+      else if (hasInput(k)){ startMachine(k,i); w.busy=true; w.arms[1].rotation.x=-1.2; } }
     else if (canDo(k)){ doAction(k); cool[key]=delayOf(k,G.st[k].w); w.arms[1].rotation.x=-1.2; }
   }
   for (const k of ['mill','press']) mh[k].forEach((h,i)=>{ const r=runs[k][i]; h(r, r?r.t/r.dur:0, dt, t); });
