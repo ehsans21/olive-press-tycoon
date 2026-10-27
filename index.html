@@ -865,11 +865,11 @@ function capGap(maxed){
   const q=k=>{ const w=maxed?mw:G.st[k].w; return w?Math.max(Q_DELAY[w-1],0.55):0.8; };   // 0.55 s for the next person to step up
   return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
 }
-// demand runs ~10% ahead of whatever you have, so you always lose a few until you upgrade;
-// it never goes past ~93% of a fully maxed level, so maxing out stops the losses but keeps a long line
+// demand starts ~40% above a fresh level's single mill and press, then climbs over 10-30 min
+// to ~7% under a fully maxed level: every upgrade cuts your losses, and only a maxed level stops them
 function arriveGap(){
-  const push=1.1+0.1*Math.min(1,G.lt/180);
-  return Math.max(capGap()/push, capGap(true)/0.93, FLOOR[G.lvl]*0.8);
+  const top=capGap(true)/0.93, start=Math.max(MILL_T[0],PRESS_T[0])/1.4, ramp=600+300*G.lvl;
+  return Math.max(top, start*Math.pow(top/start, Math.min(1,G.lt/ramp)));
 }
 function spawnFarmer(){
   const woman=Math.random()<0.35;
@@ -898,7 +898,7 @@ function update(dt){
     custT=arriveGap()*(tinStock>=6?0.7:tinStock>=2?1:1.3)*(0.8+Math.random()*0.4);
     if (customers.filter(c=>c.phase<2).length<6){ const woman=Math.random()<0.5; const c=makePerson({woman,hat:pick(['straw','kef','cap']),moustache:!woman&&Math.random()<.5,unit:L().unit}); c.g.position.set(16,0,15); c.phase=0; c.wait=0; customers.push(c); } }
   customers.filter(c=>c.phase<2).forEach((c,i)=>{ const [x,z]=cSlot(i); if (moveTo(c,x,z,2.6,dt)){ face(c,Math.PI,dt); if (i===0) c.phase=1; } c.wait+=dt;
-    if (c.wait>35){ c.phase=2; G.lost++; sfx('bad'); floatAt(c.g.position.x,2.8,c.g.position.z,'Left without oil','bad'); } });
+    if (c.wait>25){ c.phase=2; G.lost++; sfx('bad'); floatAt(c.g.position.x,2.8,c.g.position.z,'Left without oil','bad'); } });
   for (let i=customers.length-1;i>=0;i--){ const c=customers[i]; if (c.phase===2 && moveTo(c,30,5.0,2.6,dt)){ scene.remove(c.g); customers.splice(i,1); } }
   for (const key in workers){ const w=workers[key]; if (!w) continue; const k=w.k, i=w.i;
     face(w,w.face,dt); w.arms[1].rotation.x*=0.92;
