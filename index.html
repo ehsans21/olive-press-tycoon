@@ -106,6 +106,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
     <div class="chips">
       <span class="chip" id="cQueue">Queue 0/8</span>
       <span class="chip" id="cSacks">Sacks 0</span>
+      <span class="chip" id="cPaste">Paste 0</span>
       <span class="chip" id="cTins">Tins 0</span>
       <span class="chip" id="cLost">Lost 0</span>
       <button class="snd" id="snd" aria-label="Sound on">🔊</button>
@@ -685,7 +686,7 @@ const delayOf=(k,l)=>(MACH(k)?W_DELAY:Q_DELAY)[l-1];
 const wSpeed=(k,i)=>{ const w=wOf(k,i); return w? 1-0.06*(w-1) : 1; };
 const hasWorker=k=>MACH(k)?G.st[k].w.some(Boolean):!!G.st[k].w;
 const pileCap=()=>2+G.st.intake.m*2;
-const pasteCap=()=>2+N('press');
+const pasteCap=()=>8+4*N('press');   // mills keep crushing into a paste stock while the presses catch up
 const millTime=i=>MILL_T[G.st.mill.u[i]-1]*wSpeed('mill',i);
 const pressTime=i=>PRESS_T[G.st.press.u[i]-1]*wSpeed('press',i);
 const roomFree=()=>G.bays*2-G.slots.filter(Boolean).length;
@@ -869,9 +870,9 @@ function capGap(maxed){
   return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
 }
 // demand starts ~40% above a fresh level's single mill and press, then climbs over 10-30 min
-// to ~7% under a fully maxed level: every upgrade cuts your losses, and only a maxed level stops them
+// to just above a fully maxed level: every upgrade cuts your losses; only a maxed level keeps up
 function arriveGap(){
-  const top=capGap(true)/0.93, start=Math.max(MILL_T[0],PRESS_T[0])/1.4, ramp=600+300*G.lvl;
+  const top=capGap(true)/1.05, start=Math.max(MILL_T[0],PRESS_T[0])/1.4, ramp=600+300*G.lvl;
   return Math.max(top, start*Math.pow(top/start, Math.min(1,G.lt/ramp)));
 }
 function spawnFarmer(){
@@ -978,6 +979,7 @@ function ui(){
   $('money').textContent=fmt(G.money)+' ILS';
   const q=$('cQueue'); q.textContent=`Queue ${queue.length}/${QMAX}`; q.className='chip'+(queue.length>=QMAX?' bad':queue.length>=5?' warn':'');
   $('cSacks').textContent=`${L().carry==='sack'?'Sacks':'Crates'} ${units(sacks)}/${units(pileCap())}`;
+  const pp=$('cPaste'); pp.textContent=`Paste ${pasteReady}/${pasteCap()}`; pp.className='chip'+(pasteReady>=pasteCap()?' bad':'');
   $('cTins').textContent=`${L().unit==='tin'?'Tins':'Cases'} ${units(tinStock)}`;
   const l=$('cLost'); l.textContent=`Lost ${G.lost}`; l.className='chip'+(G.lost?' bad':'');
   for (const k in BASE){ const s=G.st[k]; $(k+'-ds').textContent=MACH(k)?`${N(k)} mach · ${s.w.filter(Boolean).length} wkr`:`Lv ${s.m} · ${s.w?'worker '+s.w:'no worker'}`; $(k+'-dot').hidden=!affordable(k); }
