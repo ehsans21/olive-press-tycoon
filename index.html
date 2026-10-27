@@ -54,6 +54,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .float.bad{color:#ff8a7a}
 .float.w{color:#fff}
 .hint{position:absolute;left:50%;top:10px;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(27,33,23,.7);border-radius:999px;padding:5px 12px;pointer-events:none;transition:opacity .6s;white-space:nowrap}
+.lvpop{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:5;font:inherit;font-size:14px;font-weight:700;color:#2d2418;background:var(--oil);border:0;border-radius:999px;padding:8px 16px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;animation:pop .35s ease-out}
+@keyframes pop{from{transform:translateX(-50%) scale(.6);opacity:0}}
 .banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;background:rgba(27,33,23,.85);border-radius:16px;padding:14px 22px;max-width:86%;white-space:normal;transition:opacity .8s}
 .banner b{display:block;font-family:var(--display);font-weight:400;font-size:26px;color:var(--oil);line-height:1.1}
 .banner span{font-size:13px;color:var(--fg)}
@@ -112,6 +114,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 
   <div class="stage" id="stage">
     <canvas id="c"></canvas>
+    <button class="lvpop" id="lvPop" hidden></button>
     <div class="hint" id="hint">Drag to move · pinch or scroll to zoom</div>
     <div class="banner" id="banner" style="opacity:0"><b id="bnT"></b><span id="bnS"></span></div>
     <div class="sheet gut" id="sheet" hidden>
@@ -155,7 +158,7 @@ const camera=new THREE.PerspectiveCamera(40,1,0.1,300);
 // ---------- camera rig: fixed angle, the ground stays under your finger ----------
 const YAW=0, PITCH=0.6;   // straight on, facing the press house
 const cam={tx:0,tz:1.5,dist:19};
-const BOUND={x0:-30,x1:34,z0:-10,z1:12}, DMIN=7, DMAX=36;
+const BOUND={x0:-33,x1:34,z0:-10,z1:12}, DMIN=7, DMAX=36;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function applyCam(){
   cam.dist=clamp(cam.dist,DMIN,DMAX); cam.tx=clamp(cam.tx,BOUND.x0,BOUND.x1); cam.tz=clamp(cam.tz,BOUND.z0,BOUND.z1);
@@ -169,7 +172,7 @@ new ResizeObserver(resize).observe(stage); resize(); applyCam();
 
 scene.add(new THREE.HemisphereLight('#fff4dc','#7a6247',0.8));
 const sun=new THREE.DirectionalLight('#fff1d0',1.0); sun.position.set(14,22,10); sun.castShadow=true;
-sun.shadow.mapSize.set(1536,1536); Object.assign(sun.shadow.camera,{left:-34,right:36,top:26,bottom:-26,near:1,far:70}); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.02;
+sun.shadow.mapSize.set(1536,1536); Object.assign(sun.shadow.camera,{left:-40,right:36,top:26,bottom:-26,near:1,far:70}); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.02;
 scene.add(sun);
 
 // ---------- builders ----------
@@ -264,7 +267,7 @@ function signBoard(text){
   const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
   const paint=()=>{ x.fillStyle='#2d2418'; x.fillRect(0,0,640,128); x.strokeStyle='#e8b934'; x.lineWidth=6; x.strokeRect(10,10,620,108); x.fillStyle='#e8b934'; x.font='54px "Lilita One", sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,320,68); tex.needsUpdate=true; };
   paint(); document.fonts && document.fonts.ready.then(paint);
-  const g=new THREE.Group(); g.position.set(-9.2,0,3.2); g.rotation.y=YAW; PAR.add(g);
+  const g=new THREE.Group(); g.position.set(-L().hw-2.7,0,3.2); g.rotation.y=YAW; PAR.add(g); signG=g;
   box(0.22,3.1,0.22,'#6b4a2c',-2.5,1.55,0,g); box(0.22,3.1,0.22,'#6b4a2c',2.5,1.55,0,g);
   box(5.4,1.2,0.14,'#6b4a2c',0,2.55,-0.02,g);
   const pl=new THREE.Mesh(new THREE.PlaneGeometry(5.1,1.02),new THREE.MeshBasicMaterial({map:tex,toneMapped:false})); pl.position.set(0,2.55,0.06); g.add(pl);
@@ -272,7 +275,7 @@ function signBoard(text){
 
 // ---------- levels ----------
 // Machines sit in the same spots on every level so the flow reads the same: farmers → store → mill → press → stock → shop.
-let LG=null, EXG=null, mainHooks={};
+let LG=null, EXG=null, mainHooks={}, signG=null;
 function floorAndWalls(o){
   box(o.w,0.3,o.d,o.floor,o.cx||0,0.15,o.cz||0);
   const bz=(o.cz||0)-o.d/2+0.3, lx=(o.cx||0)-o.w/2+0.3;
@@ -497,11 +500,11 @@ function buildModern(big=false, bottling=false){
 }
 
 // ---------- extension bays: each one has room for two more machines ----------
-function bayX(b){ const lv=L(), right=b<4, j=right?b:b-4; return (right?1:-1)*(lv.hw+lv.bw*(j+0.5)); }
+function bayX(b){ const lv=L(), right=b%2===0, j=b>>1; return (right?1:-1)*(lv.hw+lv.bw*(j+0.5)); }
 // each extension holds two full-size machines side by side: slot 0 on the left (mills go there), slot 1 on the right (presses)
 const slotPos=s=>[bayX(Math.floor(s/2))+L().so[s%2], s%2?-1.5:-1.0];
 function buildBay(parent,b,last){
-  const lv=L(), side=b<4?1:-1, bw=lv.bw, cx=bayX(b);
+  const lv=L(), side=b%2===0?1:-1, bw=lv.bw, cx=bayX(b);
   const sty=G.lvl===0?{floor:'#b9a98a',wall:'#d6c7a6',beam:'#7a5a3a',h:2.4}:G.lvl===1?{floor:'#bdb6a8',wall:'#ece6d8',beam:'#55606a',h:2.8}:{floor:'#9aa4a8',wall:'#eef1f2',beam:'#7a858c',h:3.4};
   const g=new THREE.Group(); g.position.set(cx,0,0); parent.add(g);
   box(bw,0.3,7.6,sty.floor,0,0.15,-0.6,g);
@@ -817,8 +820,8 @@ function buildExtras(){
   if (EXG) LG.remove(EXG);
   EXG=new THREE.Group(); LG.add(EXG);
   for (let i=hits.length-1;i>=0;i--) if (hits[i].userData.extra){ scene.remove(hits[i]); hits.splice(i,1); }
-  const rightBays=Math.min(4,G.bays);
-  for (let b=0;b<G.bays;b++) buildBay(EXG,b, b===rightBays-1 || b===G.bays-1);
+  for (let b=0;b<G.bays;b++) buildBay(EXG,b, b+2>=G.bays);
+  if (signG) signG.position.x=-(L().hw+(G.bays>>1)*L().bw)-2.7;
   for (const k of ['mill','press']){ mh[k]=[mainHooks[k]]; mpos[k]=[MAINPOS[k]]; }
   G.slots.forEach((k,s)=>{ if (!k) return; const [x,z]=slotPos(s); mh[k].push(L().mk[k](EXG,x,z)); mpos[k].push([x,k==='press'?4.6:3.9,z]); hitBox(k,L().bw/2-0.3,3.4,4.4,x,1.5,z,true); });
   for (const k of ['mill','press']){
@@ -858,12 +861,12 @@ function capGap(){
   const tp=(k,T)=>G.st[k].u.reduce((a,l,i)=>a+1/(T[l-1]*wSpeed(k,i)+(G.st[k].w[i]?delayOf(k,G.st[k].w[i]):2.5)),0);
   return 1/Math.min(tp('mill',MILL_T),tp('press',PRESS_T));
 }
-function arriveGap(){ return Math.max(FLOOR[G.lvl], Math.min(14*Math.exp(-G.lt/600), capGap()*1.05)); }
+function arriveGap(){ return Math.max(FLOOR[G.lvl], capGap()); }
 function spawnFarmer(){
   const woman=Math.random()<0.35;
   const f=makePerson({woman,hat:pick(['kef','kef','cap','straw']),moustache:!woman&&Math.random()<.6,carry:L().carry});
-  if (queue.length>=QMAX){ f.g.position.set(-26,0,6.6); f.angry=true; f.phase=0; leaving.push(f); return; }
-  f.g.position.set(-26,0,5.4); queue.push(f);
+  if (queue.length>=QMAX){ f.g.position.set(-36,0,6.6); f.angry=true; f.phase=0; leaving.push(f); return; }
+  f.g.position.set(-36,0,5.4); queue.push(f);
 }
 function update(dt){
   t+=dt; G.lt+=dt;
@@ -875,17 +878,17 @@ function update(dt){
     const f=leaving[i];
     if (f.angry){
       if (f.phase===0){ const ex=qSlot(QMAX)[0]-1; if (moveTo(f,ex,6.6,2.4,dt)){ f.phase=1; G.lost++; floatAt(ex,2.8,6.6,'Queue too long!','bad'); sfx('bad'); } }
-      else if (moveTo(f,-28,7.4,2.4,dt)){ scene.remove(f.g); leaving.splice(i,1); }
+      else if (moveTo(f,-38,7.4,2.4,dt)){ scene.remove(f.g); leaving.splice(i,1); }
     } else if (f.phase===0){ if (moveTo(f,-6.6,7.2,2.4,dt)) f.phase=1; }
-    else if (moveTo(f,-28,7.2,2.6,dt)){ scene.remove(f.g); leaving.splice(i,1); }
+    else if (moveTo(f,-38,7.2,2.6,dt)){ scene.remove(f.g); leaving.splice(i,1); }
   }
   runs.mill.forEach((r,i)=>{ if (r){ r.t+=dt; if (r.t>=r.dur){ runs.mill[i]=null; pasteReady++; const p=mpos.mill[i]; floatAt(i?p[0]:0.9,1.8,i?p[2]:0.8,'Paste ready','w'); sfx('paste'); } } });
   runs.press.forEach((r,i)=>{ if (r){ r.t+=dt; if (r.t>=r.dur){ runs.press[i]=null; tinStock=Math.min(STOCK,tinStock+1); floatAt(5,2.6,0.6,`+${units(1)} ${unitWord(units(1))}`,'w'); sfx('drip'); } } });
   custT-=dt; if (custT<=0){
-    const base=Math.max(6,12-G.lt/40)/N('press')/(tinStock>=6?1.5:1); custT=Math.max(1.2,base)*(0.8+Math.random()*0.4);
+    custT=arriveGap()*(tinStock>=6?0.7:tinStock>=2?1:1.3)*(0.8+Math.random()*0.4);
     if (customers.filter(c=>c.phase<2).length<6){ const woman=Math.random()<0.5; const c=makePerson({woman,hat:pick(['straw','kef','cap']),moustache:!woman&&Math.random()<.5,unit:L().unit}); c.g.position.set(16,0,15); c.phase=0; c.wait=0; customers.push(c); } }
   customers.filter(c=>c.phase<2).forEach((c,i)=>{ const [x,z]=cSlot(i); if (moveTo(c,x,z,2.6,dt)){ face(c,Math.PI,dt); if (i===0) c.phase=1; } c.wait+=dt;
-    if (c.wait>35){ c.phase=2; floatAt(c.g.position.x,2.8,c.g.position.z,'Left without oil','bad'); } });
+    if (c.wait>35){ c.phase=2; G.lost++; sfx('bad'); floatAt(c.g.position.x,2.8,c.g.position.z,'Left without oil','bad'); } });
   for (let i=customers.length-1;i>=0;i--){ const c=customers[i]; if (c.phase===2 && moveTo(c,30,5.0,2.6,dt)){ scene.remove(c.g); customers.splice(i,1); } }
   for (const key in workers){ const w=workers[key]; if (!w) continue; const k=w.k, i=w.i;
     face(w,w.face,dt); w.arms[1].rotation.x*=0.92;
@@ -952,6 +955,7 @@ function rowSpecs(k){
 rowsEl.addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if (!b) return; const r=curRows[+b.dataset.i], bt=r&&r.btns[+b.dataset.j];
   if (!bt||bt.off||!bt.act||G.money<bt.cost) return; G.money-=bt.cost; bt.act(); save(); ui(); });
 $('bMove').onclick=moveUp;
+$('lvPop').onclick=()=>{ $('lvPop').hidden=true; openSheet('move'); };
 let armed=false;
 function resetArmed(){ armed=false; $('bReset').textContent='Start over'; $('bReset').classList.remove('armed'); }
 $('bReset').onclick=()=>{ if (!armed){ armed=true; $('bReset').textContent='Tap again to erase all progress'; $('bReset').classList.add('armed'); return; }
@@ -964,6 +968,7 @@ function ui(){
   $('cTins').textContent=`${L().unit==='tin'?'Tins':'Cases'} ${units(tinStock)}`;
   const l=$('cLost'); l.textContent=`Lost ${G.lost}`; l.className='chip'+(G.lost?' bad':'');
   for (const k in BASE){ const s=G.st[k]; $(k+'-ds').textContent=MACH(k)?`${N(k)} mach · ${s.w.filter(Boolean).length} wkr`:`Lv ${s.m} · ${s.w?'worker '+s.w:'no worker'}`; $(k+'-dot').hidden=!affordable(k); }
+  if (G.money>=L().move && G.lvNote!==G.lvl && !(L().final&&G.won)){ G.lvNote=G.lvl; const e=$('lvPop'); e.textContent=L().final?'Final goal ready! Tap to finish':`Level ${G.lvl+2} unlocked! Tap to move up`; e.hidden=false; clearTimeout(e.t); e.t=setTimeout(()=>e.hidden=true,9000); sfx('up'); }
   $('miniBar').style.width=Math.min(100,G.money/L().move*100)+'%';
   if (SND.hum){ const n=runs.mill.filter(Boolean).length+runs.press.filter(Boolean).length; SND.hum.gain.setTargetAtTime(n?0.1+0.04*Math.min(6,n):0,SND.ac.currentTime,0.3); }
   if (!sel) return;
