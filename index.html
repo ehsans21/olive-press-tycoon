@@ -304,7 +304,10 @@ function stoneMill(parent,x,z,s=1){
   cyl(0.05,0.05,1.6,'#555',0,0,0,wp,6).rotation.z=Math.PI/2;
   box(3.6,0.12,0.12,'#7a5a3a',-1.2,1.0,0,rotor);
   const d=makeDonkey(rotor);
-  return (run,p,dt,t)=>{ if (run){ const sp=Math.PI*2*3/run.dur; rotor.rotation.y+=dt*sp; wheel.rotation.x+=dt*sp*3.2; d.walk(run.t*sp*6,t); } else d.idle(); paste.scale.y=run?1+p*3:1; };
+  // the donkey keeps plodding through short gaps between batches instead of stopping dead
+  let sp=0, ph=0, rest=9;
+  return (run,p,dt,t)=>{ if (run){ sp=Math.PI*2*3/run.dur; rest=0; } else rest+=dt;
+    if (rest<2.5){ rotor.rotation.y+=dt*sp; wheel.rotation.x+=dt*sp*3.2; ph+=dt*sp*6; d.walk(ph,t); } else d.idle(); paste.scale.y=run?1+p*3:1; };
 }
 function screwPress(parent,x,z,s=1){
   const press=new THREE.Group(); press.position.set(x,0.3,z); press.scale.setScalar(s); parent.add(press);
