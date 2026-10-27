@@ -857,11 +857,20 @@ function moveUp(){
 }
 
 // ---------- simulation ----------
-function capGap(){
-  const tp=(k,T)=>G.st[k].u.reduce((a,l,i)=>a+1/(T[l-1]*wSpeed(k,i)+(G.st[k].w[i]?delayOf(k,G.st[k].w[i]):2.5)),0);
-  return 1/Math.min(tp('mill',MILL_T),tp('press',PRESS_T));
+// seconds between farmers your setup can handle: the slowest of intake, mills, presses and shop
+function capGap(maxed){
+  const lv=L(), mw=MAX;
+  const tp=(k,T)=>{ const n=maxed?lv.maxU:N(k); let a=0;
+    for (let i=0;i<n;i++){ const l=maxed?MAX:G.st[k].u[i], w=maxed?mw:G.st[k].w[i]; a+=1/(T[l-1]*(w?1-0.06*(w-1):1)+(w?0:2.5)); } return a; };   // a worker re-arms during the run, so only tapping adds a gap
+  const q=k=>{ const w=maxed?mw:G.st[k].w; return w?Math.max(Q_DELAY[w-1],0.55):2.5; };   // 0.55 s for the next person to step up
+  return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
 }
-function arriveGap(){ return Math.max(FLOOR[G.lvl], capGap()); }
+// demand runs ~10% ahead of whatever you have, so you always lose a few until you upgrade;
+// it never goes past ~93% of a fully maxed level, so maxing out stops the losses but keeps a long line
+function arriveGap(){
+  const push=0.95+0.2*Math.min(1,G.lt/240);
+  return Math.max(capGap()/push, capGap(true)/0.93, FLOOR[G.lvl]*0.8);
+}
 function spawnFarmer(){
   const woman=Math.random()<0.35;
   const f=makePerson({woman,hat:pick(['kef','kef','cap','straw']),moustache:!woman&&Math.random()<.6,carry:L().carry});
