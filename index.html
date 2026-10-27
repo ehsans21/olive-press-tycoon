@@ -706,7 +706,7 @@ const workers={}, cool={};
 let sacks=0, pasteReady=0, tinStock=0, intakeBusy=0, t=0;
 const runs={mill:[null],press:[null]}, mh={mill:[],press:[]}, mpos={mill:[],press:[]};
 const queue=[], leaving=[], customers=[];
-let arriveT=2, custT=10, birdT=6;
+let arriveT=2, custT=10, birdT=6, groupN=3, groupT=0;
 const qSlot=i=>[-5.4-i*1.3,5.4];
 const cSlot=i=>[4.8,4.6+i*1.05];
 const MAINPOS={mill:[-2.2,3.9,-0.9], press:[2.9,4.7,-1.6]};
@@ -841,7 +841,7 @@ function setupLevel(){
   PAR=scene;
   for (const k in workers){ if (workers[k]) scene.remove(workers[k].g); delete workers[k]; }
   for (const k of ['intake','shop']) if (G.st[k].w) spawnWorker(k);
-  clearPeople(); sacks=0; pasteReady=0; tinStock=0; runs.mill=[]; runs.press=[]; arriveT=2; custT=8;
+  clearPeople(); sacks=0; pasteReady=0; tinStock=0; runs.mill=[]; runs.press=[]; arriveT=4; groupN=3; custT=8;
   buildExtras();
   $('lvlName').textContent=`Level ${G.lvl+1} · ${L().name}`;
   $('mvLabel').textContent=L().final?'Goal':`Level ${G.lvl+2}`;
@@ -861,14 +861,14 @@ function moveUp(){
 function capGap(maxed){
   const lv=L(), mw=MAX;
   const tp=(k,T)=>{ const n=maxed?lv.maxU:N(k); let a=0;
-    for (let i=0;i<n;i++){ const l=maxed?MAX:G.st[k].u[i], w=maxed?mw:G.st[k].w[i]; a+=1/(T[l-1]*(w?1-0.06*(w-1):1)+(w?0:2.5)); } return a; };   // a worker re-arms during the run, so only tapping adds a gap
-  const q=k=>{ const w=maxed?mw:G.st[k].w; return w?Math.max(Q_DELAY[w-1],0.55):2.5; };   // 0.55 s for the next person to step up
+    for (let i=0;i<n;i++){ const l=maxed?MAX:G.st[k].u[i], w=maxed?mw:G.st[k].w[i]; a+=1/(T[l-1]*(w?1-0.06*(w-1):1)); } return a; };   // a worker re-arms during the run, so only tapping adds a gap
+  const q=k=>{ const w=maxed?mw:G.st[k].w; return w?Math.max(Q_DELAY[w-1],0.55):0.8; };   // 0.55 s for the next person to step up
   return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
 }
 // demand runs ~10% ahead of whatever you have, so you always lose a few until you upgrade;
 // it never goes past ~93% of a fully maxed level, so maxing out stops the losses but keeps a long line
 function arriveGap(){
-  const push=0.95+0.2*Math.min(1,G.lt/240);
+  const push=1.1+0.1*Math.min(1,G.lt/180);
   return Math.max(capGap()/push, capGap(true)/0.93, FLOOR[G.lvl]*0.8);
 }
 function spawnFarmer(){
@@ -879,7 +879,8 @@ function spawnFarmer(){
 }
 function update(dt){
   t+=dt; G.lt+=dt;
-  arriveT-=dt; if (arriveT<=0){ arriveT=arriveGap()*(0.8+Math.random()*0.4); spawnFarmer(); }
+  arriveT-=dt; if (arriveT<=0){ const n=1+Math.floor(Math.random()*3); arriveT=arriveGap()*n*(0.8+Math.random()*0.4); groupN+=n; }
+  if (groupN>0){ groupT-=dt; if (groupT<=0){ groupN--; groupT=0.7; spawnFarmer(); } }
   birdT-=dt; if (birdT<=0){ birdT=7+Math.random()*10; sfx('bird'); }
   queue.forEach((f,i)=>{ const [x,z]=qSlot(i); f.atSlot=moveTo(f,x,z,2.4,dt); if (f.atSlot) face(f,Math.PI/2,dt); });
   if (intakeBusy>0) intakeBusy=Math.max(0,intakeBusy-dt);
