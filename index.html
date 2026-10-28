@@ -56,6 +56,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .hint{position:absolute;left:50%;top:10px;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(27,33,23,.7);border-radius:999px;padding:5px 12px;pointer-events:none;transition:opacity .6s;white-space:nowrap}
 .lvpop{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:5;font:inherit;font-size:14px;font-weight:700;color:#2d2418;background:var(--oil);border:0;border-radius:999px;padding:8px 16px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;animation:pop .35s ease-out}
 @keyframes pop{from{transform:translateX(-50%) scale(.6);opacity:0}}
+.paused{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(27,33,23,.55)}
+.paused[hidden]{display:none}
+.paused b{font-family:var(--display);font-weight:400;font-size:34px;color:var(--oil)}
+.paused .btn{min-width:140px}
 .banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;background:rgba(27,33,23,.85);border-radius:16px;padding:14px 22px;max-width:86%;white-space:normal;transition:opacity .8s}
 .banner b{display:block;font-family:var(--display);font-weight:400;font-size:26px;color:var(--oil);line-height:1.1}
 .banner span{font-size:13px;color:var(--fg)}
@@ -110,6 +114,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
       <span class="chip" id="cTins">Tins 0</span>
       <span class="chip" id="cLost">Lost 0</span>
       <button class="snd" id="snd" aria-label="Sound on">🔊</button>
+      <button class="snd" id="bPause" aria-label="Pause">⏸</button>
     </div>
   </header>
 
@@ -117,6 +122,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
     <canvas id="c"></canvas>
     <button class="lvpop" id="lvPop" hidden></button>
     <div class="hint" id="hint">Drag to move · pinch or scroll to zoom</div>
+    <div class="paused" id="pausedOv" hidden><b>Paused</b><button class="btn" id="bResume">Resume</button></div>
     <div class="banner" id="banner" style="opacity:0"><b id="bnT"></b><span id="bnS"></span></div>
     <div class="sheet gut" id="sheet" hidden>
       <div class="sh-head"><h3 id="shTitle">Stone mill</h3><button class="x" id="shClose" aria-label="Close">✕</button></div>
@@ -126,6 +132,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
         <div class="bar"><i id="saveBar"></i></div>
         <p class="mvtxt" id="moveP"></p>
         <button class="btn" id="bMove"></button>
+        <button class="lnk" id="bRestart">Restart this level</button>
         <button class="lnk" id="bReset">Start over</button>
       </div>
     </div>
@@ -704,7 +711,7 @@ const mDesc=(k,l)=>{ const b=L().batch;
   return `${L().price[0]+(l-1)*L().price[1]} ILS per ${L().unit}`; };
 
 const freshSt=()=>({intake:{m:1,w:0},mill:{u:[1],w:[0]},press:{u:[1],w:[0]},shop:{m:1,w:0}});
-const fresh=()=>({lvl:0,money:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt()});
+const fresh=()=>({lvl:0,money:500,lvlMoney:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt()});
 let G=fresh();
 const workers={}, cool={};
 let sacks=0, pasteReady=0, tinStock=0, intakeBusy=0, t=0;
@@ -724,7 +731,8 @@ function floatAt(x,y,z,text,cls=''){ const el=ov('float '+cls); el.textContent=t
 const tagHtml='<span></span><span class="prog"><i></i></span>';
 const tags={mill:[ov('tag',tagHtml)], press:[ov('tag',tagHtml)]};
 const taps={intake:ov('tapme','Tap'),mill:ov('tapme','Tap'),press:ov('tapme','Tap'),shop:ov('tapme','Tap')};
-const tapPos={intake:()=>[qSlot(0)[0],2.9,qSlot(0)[1]],mill:()=>[-4.4,2.6,2.0],press:()=>[2.9,4.0,-0.2],shop:()=>[cSlot(0)[0],2.9,cSlot(0)[1]]};
+const machTap=(k,main)=>()=>{ const i=idle(k); if (i<=0) return main; const p=mpos[k][i]; return [p[0],p[1]-1.3,p[2]+1.6]; };
+const tapPos={intake:()=>[qSlot(0)[0],2.9,qSlot(0)[1]],mill:machTap('mill',[-4.4,2.6,2.0]),press:machTap('press',[2.9,4.0,-0.2]),shop:()=>[cSlot(0)[0],2.9,cSlot(0)[1]]};
 let bannerT=0;
 function banner(title,sub,secs=3.5){ $('bnT').textContent=title; $('bnS').textContent=sub; $('banner').style.opacity=1; bannerT=secs; }
 
@@ -762,6 +770,7 @@ const hits=[];
 function hitBox(k,w,h,d,x,y,z,extra=false){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({visible:false})); m.position.set(x,y,z); m.userData={k,extra}; scene.add(m); hits.push(m); }
 hitBox('intake',2.6,3,2.4,-5.6,1.3,5.4); hitBox('mill',6,3,4.6,-3.2,1.3,0.2); hitBox('press',3.6,4.2,3.4,2.9,2,-1.2); hitBox('shop',3.8,3,2.8,5.0,1.3,4.1);
 function tapAt(x,y){
+  if (paused) return;
   toNdc(x,y); ray.setFromCamera(ndc,camera); const h=ray.intersectObjects(hits,false)[0]; if (!h) return;
   const k=h.object.userData.k, p=h.point;
   if (canDo(k) && (MACH(k) || !G.st[k].w)) doAction(k);
@@ -855,7 +864,7 @@ function setupLevel(){
 function moveUp(){
   if (G.money<L().move) return;
   if (L().final){ if (!G.won){ G.won=true; banner('Olive oil empire!','Abu Yousef is the best-known olive oil in the region. Keep pressing as long as you like.',6); sfx('level'); save(); } return; }
-  G.money-=L().move; G.lvl++; G.lt=0; G.lost=0; G.st=freshSt(); G.bays=0; G.slots=[];
+  G.money-=L().move; G.lvl++; G.lvlMoney=G.money; G.lt=0; G.lost=0; G.st=freshSt(); G.bays=0; G.slots=[];
   setupLevel(); save(); sfx('level');
   banner(`Level ${G.lvl+1}`,L().name,4);
 }
@@ -920,7 +929,7 @@ function update(dt){
 
 // ---------- save / offline ----------
 const KEY='olive-press-tycoon-v1';
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify({...G,savedAt:Date.now()})); }catch(_){} }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify({...G,live:{q:queue.length,sacks,paste:pasteReady,tins:tinStock},savedAt:Date.now()})); }catch(_){} }
 function load(){
   try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if (!s||!s.st) return null; return s; }catch(_){ return null; }
 }
@@ -971,9 +980,18 @@ function rowSpecs(k){
 rowsEl.addEventListener('click',e=>{ const b=e.target.closest('button[data-i]'); if (!b) return; const r=curRows[+b.dataset.i], bt=r&&r.btns[+b.dataset.j];
   if (!bt||bt.off||!bt.act||G.money<bt.cost) return; G.money-=bt.cost; bt.act(); save(); ui(); });
 $('bMove').onclick=moveUp;
+let paused=false;
+function setPause(v){ paused=v; $('pausedOv').hidden=!v; $('bPause').textContent=v?'▶':'⏸'; $('bPause').setAttribute('aria-label',v?'Resume':'Pause'); if (v) save(); }
+$('bPause').onclick=()=>setPause(!paused); $('bResume').onclick=()=>setPause(false);
 $('lvPop').onclick=()=>{ $('lvPop').hidden=true; openSheet('move'); };
 let armed=false;
-function resetArmed(){ armed=false; $('bReset').textContent='Start over'; $('bReset').classList.remove('armed'); }
+let armedL=false;
+function resetArmed(){ armed=false; $('bReset').textContent='Start over'; $('bReset').classList.remove('armed');
+  armedL=false; $('bRestart').textContent='Restart this level'; $('bRestart').classList.remove('armed'); }
+// back to how the level looked when you arrived: one machine of each, no workers, the money you came with
+$('bRestart').onclick=()=>{ if (!armedL){ armedL=true; $('bRestart').textContent=`Tap again: restart Level ${G.lvl+1} with ${fmt(G.lvlMoney??G.money)} ILS`; $('bRestart').classList.add('armed'); return; }
+  G.money=G.lvlMoney??G.money; G.lvlMoney=G.money; G.lt=0; G.lost=0; G.st=freshSt(); G.bays=0; G.slots=[]; G.lvNote=-1;
+  setupLevel(); resetArmed(); save(); banner(`Level ${G.lvl+1}`,'Fresh start',3); };
 $('bReset').onclick=()=>{ if (!armed){ armed=true; $('bReset').textContent='Tap again to erase all progress'; $('bReset').classList.add('armed'); return; }
   G=fresh(); try{ localStorage.removeItem(KEY); }catch(_){} setupLevel(); resetArmed(); banner('Level 1',L().name); };
 function affordable(k){ if (k==='move') return false; return rowSpecs(k).some(r=>r.btns.some(b=>!b.off&&b.act&&G.money>=b.cost)); }
@@ -1011,13 +1029,16 @@ function ui(){
 
 // ---------- boot ----------
 const saved=load();
-if (saved){ G={...fresh(),...saved}; delete G.savedAt;
+if (saved){ G={...fresh(),...saved}; delete G.savedAt; delete G.live;
   for (const k of ['mill','press']){ if (!G.st[k].u) G.st[k]={u:[G.st[k].m||1],w:G.st[k].w||0};
     if (!Array.isArray(G.st[k].w)) G.st[k].w=G.st[k].u.map((_,i)=>i?0:(G.st[k].w||0)); }
   if (!Array.isArray(G.slots)) G.slots=[]; G.bays=G.bays||0;
   // older saves put presses in slot 0; mills now go on the left (same-type order is unchanged, so levels stay matched)
   for (let b=0;b<G.bays;b++) if (G.slots[2*b]==='press' && G.slots[2*b+1]==='mill'){ G.slots[2*b]='mill'; G.slots[2*b+1]='press'; } }
 setupLevel();
+if (saved && saved.live){ const v=saved.live; sacks=Math.min(v.sacks||0,pileCap()); pasteReady=Math.min(v.paste||0,pasteCap()); tinStock=Math.min(v.tins||0,STOCK);
+  for (let i=0;i<Math.min(v.q||0,QMAX);i++){ spawnFarmer(); const f=queue[queue.length-1]; if (f){ const [x,z]=qSlot(i); f.g.position.set(x,0,z); } }
+  if (v.q) groupN=0; }
 if (saved && saved.savedAt){
   const away=Math.min(3*3600,(Date.now()-saved.savedAt)/1000), earned=offlineRate()*away;
   if (earned>1){ G.money+=earned; banner('Welcome back',`Your workers earned ${fmt(earned)} ILS while you were away.`,5); }
@@ -1029,7 +1050,7 @@ function frame(now){
   requestAnimationFrame(frame);
   if (now-last<31) return;   // ~30 fps is plenty here and saves battery
   const dt=Math.min(0.1,(now-last)/1000); last=now;
-  update(dt);
+  if (!paused) update(dt);
   if (ptrs.size===0 && (Math.abs(vel.x)+Math.abs(vel.z))>0.05){ cam.tx+=vel.x*dt; cam.tz+=vel.z*dt; const k=Math.pow(0.02,dt); vel.x*=k; vel.z*=k; applyCam(); }
   for (const k of ['mill','press']) tags[k].forEach((el,i)=>{ const r=runs[k][i]; place(el,...mpos[k][i]); el.lastChild.firstChild.style.width=(r?r.t/r.dur*100:0)+'%'; });
   for (const k in taps){ const show=(MACH(k)||!G.st[k].w) && canDo(k); taps[k].style.display=show?'':'none'; if (show) place(taps[k],...tapPos[k]()); }
