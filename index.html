@@ -878,11 +878,17 @@ function capGap(maxed){
   const q=k=>{ const w=maxed?mw:G.st[k].w; return w?Math.max(Q_DELAY[w-1],0.55):0.8; };   // 0.55 s for the next person to step up
   return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
 }
-// demand starts at twice a fresh level's single mill and press, then climbs over 10-30 min
-// to just under a fully maxed level: every upgrade cuts your losses; a maxed level keeps a long line but loses no one
+// demand follows YOUR setup: always a bit more than you can handle, so there's a line and a few losses,
+// easing as you upgrade (+45% fresh -> +8% nearly done); a fully maxed level keeps a line but loses no one
+function progress(){
+  const lv=L(); let got=0, all=18+18*lv.maxU;
+  for (const k of ['intake','shop']) got+=G.st[k].m-1+G.st[k].w;
+  for (const k of ['mill','press']) G.st[k].u.forEach((u,i)=>got+=u-1+G.st[k].w[i]);
+  return Math.min(1,got/all);
+}
 function arriveGap(){
-  const top=capGap(true)/0.97, start=Math.max(MILL_T[0],PRESS_T[0])/2, ramp=600+300*G.lvl;
-  return Math.max(top, start*Math.pow(top/start, Math.min(1,G.lt/ramp)));
+  const top=capGap(true)/0.97, p=progress();
+  return Math.max(top, p>=1 ? top : capGap(false)/(1.45-0.37*p));
 }
 function spawnFarmer(){
   const woman=Math.random()<0.35;
