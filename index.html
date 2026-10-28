@@ -887,15 +887,16 @@ function arriveGap(){
 function spawnFarmer(){
   const woman=Math.random()<0.35;
   const f=makePerson({woman,hat:pick(['kef','kef','cap','straw']),moustache:!woman&&Math.random()<.6,carry:L().carry});
-  if (queue.length>=QMAX){ f.g.position.set(-36,0,6.6); f.angry=true; f.phase=0; leaving.push(f); return; }
-  f.g.position.set(-36,0,5.4); queue.push(f);
+  const sx=Math.min(-18,-(L().hw+(G.bays>>1)*L().bw)-8);
+  if (queue.length>=QMAX){ f.g.position.set(sx,0,6.6); f.angry=true; f.phase=0; leaving.push(f); return; }
+  f.g.position.set(sx,0,5.4); queue.push(f);
 }
 function update(dt){
   t+=dt; G.lt+=dt;
   arriveT-=dt; if (arriveT<=0){ const n=1+Math.floor(Math.random()*3); arriveT=arriveGap()*n*(0.8+Math.random()*0.4); groupN+=n; }
   if (groupN>0){ groupT-=dt; if (groupT<=0){ groupN--; groupT=0.7; spawnFarmer(); } }
   birdT-=dt; if (birdT<=0){ birdT=7+Math.random()*10; sfx('bird'); }
-  queue.forEach((f,i)=>{ const [x,z]=qSlot(i); f.atSlot=moveTo(f,x,z,2.4,dt); if (f.atSlot) face(f,Math.PI/2,dt); });
+  queue.forEach((f,i)=>{ const [x,z]=qSlot(i); f.atSlot=moveTo(f,x,z,f.g.position.x<x-2?4.5:2.4,dt); if (f.atSlot) face(f,Math.PI/2,dt); });
   if (intakeBusy>0) intakeBusy=Math.max(0,intakeBusy-dt);
   for (let i=leaving.length-1;i>=0;i--){
     const f=leaving[i];
