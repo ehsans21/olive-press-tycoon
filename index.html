@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Olive Press Tycoon</title>
 <meta name="description" content="Run Abu Yousef's olive press, from a village stone mill to an export brand.">
-<meta name="theme-color" content="#2d2418">
+<meta name="theme-color" content="#1e2a1f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,11 +18,11 @@
 <style>
 /* Layout: full-screen app. Thin HUD bar on top, the 3D press house fills the middle, a dock of station buttons at the bottom opens one sheet at a time. Single dark look. */
 :root{
-  --bg:#1b2117;
-  --panel:#2d2418;
-  --panel2:#3e3223;
+  --bg:#141c15;
+  --panel:#1e2a1f;
+  --panel2:#2c3b2c;
   --fg:#f1efe2;
-  --muted:#b3ad98;
+  --muted:#a9b59d;
   --oil:#e8b934;
   --red:#d24b3c;
   --green:#5bbf7a;
@@ -48,13 +48,13 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .tag{font-size:11px;font-weight:700;background:rgba(27,33,23,.82);color:#fff;border-radius:999px;padding:3px 9px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .prog{width:60px;height:5px;border-radius:3px;background:#555;overflow:hidden}
 .prog i{display:block;height:100%;width:0;background:var(--oil)}
-.tapme{font-family:var(--display);font-size:14px;color:#2d2418;background:var(--oil);border-radius:999px;padding:4px 11px;animation:pulse 1.2s infinite}
+.tapme{font-family:var(--display);font-size:14px;color:#1e2a1f;background:var(--oil);border-radius:999px;padding:4px 11px;animation:pulse 1.2s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,185,52,.75)}100%{box-shadow:0 0 0 14px rgba(232,185,52,0)}}
-.float{font-family:var(--display);font-size:18px;color:var(--oil);text-shadow:0 2px 0 #2d2418,0 0 6px rgba(0,0,0,.5)}
+.float{font-family:var(--display);font-size:18px;color:var(--oil);text-shadow:0 2px 0 #1e2a1f,0 0 6px rgba(0,0,0,.5)}
 .float.bad{color:#ff8a7a}
 .float.w{color:#fff}
 .hint{position:absolute;left:50%;top:10px;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(27,33,23,.7);border-radius:999px;padding:5px 12px;pointer-events:none;transition:opacity .6s;white-space:nowrap}
-.lvpop{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:5;font:inherit;font-size:14px;font-weight:700;color:#2d2418;background:var(--oil);border:0;border-radius:999px;padding:8px 16px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;animation:pop .35s ease-out}
+.lvpop{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:5;font:inherit;font-size:14px;font-weight:700;color:#1e2a1f;background:var(--oil);border:0;border-radius:999px;padding:8px 16px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;animation:pop .35s ease-out}
 @keyframes pop{from{transform:translateX(-50%) scale(.6);opacity:0}}
 .paused{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(27,33,23,.55)}
 .paused[hidden]{display:none}
@@ -71,14 +71,14 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .dk .ds{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .dk .dot{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--green)}
 .dk.mv .dn{color:var(--oil)}
-.mini{width:80%;height:4px;border-radius:2px;background:#2a2218;overflow:hidden}
+.mini{width:80%;height:4px;border-radius:2px;background:#15201a;overflow:hidden}
 .mini i{display:block;height:100%;width:0;background:var(--oil)}
-.sheet{position:absolute;left:0;right:0;bottom:0;max-height:64%;background:rgba(45,36,24,.97);border-radius:16px 16px 0 0;padding-block:12px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:64%;background:rgba(30,42,31,.97);border-radius:16px 16px 0 0;padding-block:12px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -6px 20px rgba(0,0,0,.35)}
 .sh-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sh-head h3{margin:0;font-family:var(--display);font-weight:400;font-size:20px}
 .x{font:inherit;cursor:pointer;border:0;background:var(--panel2);color:var(--fg);border-radius:8px;width:34px;height:34px;font-size:16px}
 .rows{display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow-y:auto;min-height:0;overscroll-behavior:contain}
-.btn.exp{background:#e0894a;color:#2d2418}
+.btn.exp{background:#e0894a;color:#1e2a1f}
 .bts{display:grid;grid-template-columns:1fr 1fr;gap:6px}.bts.one{grid-template-columns:1fr}
 .wk{font-size:11.5px;color:var(--muted)}
 .snd{font:inherit;cursor:pointer;border:0;background:var(--panel2);color:var(--fg);border-radius:999px;width:30px;height:24px;font-size:13px;padding:0}
@@ -87,15 +87,15 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .lab{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
 .lab b{color:var(--fg);font-weight:700;text-align:right}
 .pips{display:flex;gap:3px}
-.pips span{flex:1;height:6px;border-radius:2px;background:#2a2218}
+.pips span{flex:1;height:6px;border-radius:2px;background:#15201a}
 .pips span.on{background:var(--green)}
-.btn{font:inherit;cursor:pointer;border:0;border-radius:8px;background:var(--oil);color:#2d2418;font-weight:700;font-size:13px;padding:8px;font-variant-numeric:tabular-nums}
+.btn{font:inherit;cursor:pointer;border:0;border-radius:8px;background:var(--oil);color:#1e2a1f;font-weight:700;font-size:13px;padding:8px;font-variant-numeric:tabular-nums}
 .btn:focus-visible,.x:focus-visible,.lnk:focus-visible{outline:2px solid #fff;outline-offset:2px}
-.btn[disabled]{background:#5a5040;color:#b9b19c;cursor:default}
+.btn[disabled]{background:#3f5144;color:#a9b59d;cursor:default}
 .btn.hire{background:var(--green);color:#10200f}
 .btn.hire[disabled]{background:#3f5a45;color:#a6bba9}
 .mvtxt{font-size:13px;color:var(--muted);line-height:1.45;margin:0}
-.bar{height:8px;border-radius:4px;background:#2a2218;overflow:hidden}
+.bar{height:8px;border-radius:4px;background:#15201a;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--oil);width:0}
 .lnk{font:inherit;font-size:12px;background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:4px 0;align-self:flex-start}
 .lnk.armed{color:#ff8a7a}
@@ -273,7 +273,7 @@ function cat(x,y,z,rot){ const g=new THREE.Group(); g.position.set(x,y,z); g.rot
 function signBoard(text){
   const c=document.createElement('canvas'); c.width=640; c.height=128; const x=c.getContext('2d');
   const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
-  const paint=()=>{ x.fillStyle='#2d2418'; x.fillRect(0,0,640,128); x.strokeStyle='#e8b934'; x.lineWidth=6; x.strokeRect(10,10,620,108); x.fillStyle='#e8b934'; x.font='54px "Lilita One", sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,320,68); tex.needsUpdate=true; };
+  const paint=()=>{ x.fillStyle='#1e2a1f'; x.fillRect(0,0,640,128); x.strokeStyle='#e8b934'; x.lineWidth=6; x.strokeRect(10,10,620,108); x.fillStyle='#e8b934'; x.font='54px "Lilita One", sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,320,68); tex.needsUpdate=true; };
   paint(); document.fonts && document.fonts.ready.then(paint);
   const g=new THREE.Group(); g.position.set(-L().hw-2.7,0,3.2); g.rotation.y=YAW; PAR.add(g); signG=g;
   box(0.22,3.1,0.22,'#6b4a2c',-2.5,1.55,0,g); box(0.22,3.1,0.22,'#6b4a2c',2.5,1.55,0,g);
