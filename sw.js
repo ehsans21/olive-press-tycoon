@@ -1,5 +1,5 @@
 // Offline cache: the game files are cached on install; fonts are cached the first time they load.
-const CACHE = 'olive-press-v7';
+const CACHE = 'olive-press-v8';
 const FILES = ['./', 'index.html', 'three.min.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {
