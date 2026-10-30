@@ -985,7 +985,8 @@ function spawnFarmer(){
 function update(dt){
   t+=dt; G.lt+=dt;
   weather(dt); sky(dt);
-  arriveT-=dt*(1-0.5*rain.amt);   // rain keeps some farmers at home if (arriveT<=0){ const n=1+Math.floor(Math.random()*3); arriveT=arriveGap()*n*(0.8+Math.random()*0.4); groupN+=n; }
+  // rain keeps some farmers at home
+  arriveT-=dt*(1-0.5*rain.amt); if (arriveT<=0){ const n=1+Math.floor(Math.random()*3); arriveT=arriveGap()*n*(0.8+Math.random()*0.4); groupN+=n; }
   if (groupN>0){ groupT-=dt; if (groupT<=0){ groupN--; groupT=0.7; spawnFarmer(); } }
   birdT-=dt; if (birdT<=0){ birdT=7+Math.random()*10; sfx('bird'); }
   queue.forEach((f,i)=>{ const [x,z]=qSlot(i); f.atSlot=moveTo(f,x,z,f.g.position.x<x-2?4.5:2.4,dt); if (f.atSlot) face(f,Math.PI/2,dt); });
