@@ -1,0 +1,27 @@
+# Play Console "Set up your app" answers
+
+Privacy policy:  https://ehsans21.github.io/olive-press-tycoon/privacy.html
+App access:      All functionality is available without special access
+Ads:             No, my app does not contain ads
+Advertising ID:  No
+Content rating:  Email shlewettgames@gmail.com, category "Game".
+                 Answer NO to everything (violence, fear, sex, language, drugs,
+                 gambling, user chat/interaction, sharing location, purchases).
+                 -> should come out "Everyone" / PEGI 3.
+Target audience: Ages 13-15, 16-17, 18+ (avoids the stricter Families rules).
+                 "Unintentionally appeal to children?" -> No.
+Data safety:     Collect or share any user data? -> No. (Everything is saved on
+                 the phone only.) Then just submit.
+Government app:  No
+Financial features: My app doesn't provide any financial features
+Health:          No health features
+News app:        No
+Category:        Games > Simulation, email shlewettgames@gmail.com
+
+Store listing (files in this store/ folder):
+  App name:          Olive Press Tycoon
+  Short description: from store-listing.md
+  Full description:  from store-listing.md
+  App icon:          app-icon-512.png
+  Feature graphic:   feature-graphic.png
+  Phone screenshots: s1.png - s5.png

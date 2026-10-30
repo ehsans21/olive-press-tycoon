@@ -1,0 +1,34 @@
+# Olive Press Tycoon - Play Store listing
+
+App name (30 max): Olive Press Tycoon
+Category: Games > Simulation
+Contact email: shlewettgames@gmail.com
+Privacy policy: https://ehsans21.github.io/olive-press-tycoon/privacy.html
+Price: Free · Ads: No · In-app purchases: No
+
+## Short description (80 max)
+Run Abu Yousef's olive press, from a village stone mill to an export brand.
+
+## Full description
+Help Abu Yousef turn a small village olive press into a famous olive oil brand.
+
+Farmers line up with sacks of olives. Crush them, press the paste, and sell the oil, at first by tapping, then with workers you hire and train. Keep the line moving, or farmers walk away angry.
+
+HOW IT WORKS
+• Tap to take olives, crush, press and sell
+• Hire a worker for every machine, then train them to work faster
+• Upgrade machines, add new mills and presses, and build extensions for more space
+• Save up to move to the next level
+
+FIVE LEVELS OF GROWTH
+1. Village Stone Press - a donkey turns the stone mill
+2. Family Mill - hydraulic presses
+3. Modern 2-Phase Mill - crusher lines and decanters
+4. Cooperative Factory
+5. Export Brand
+
+Every level has limits, so you have to choose: upgrade what you have, add more machines, or save to move up.
+
+• Charming 3D village scene
+• Plays offline
+• No ads, no purchases, no account needed
