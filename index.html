@@ -798,7 +798,7 @@ function toNdc(x,y){ ndc.set(((x-SR.left)/SR.width)*2-1, -((y-SR.top)/SR.height)
 function groundAt(x,y){ toNdc(x,y); ray.setFromCamera(ndc,camera); const out=new THREE.Vector3(); return ray.ray.intersectPlane(plane,out)?out:null; }
 const hits=[];
 function hitBox(k,w,h,d,x,y,z,extra=false){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({visible:false})); m.position.set(x,y,z); m.userData={k,extra}; scene.add(m); hits.push(m); }
-hitBox('intake',2.6,3,2.4,-5.6,1.3,5.4); hitBox('mill',6,3,4.6,-3.2,1.3,0.2); hitBox('press',3.6,4.2,3.4,2.9,2,-1.2); hitBox('shop',3.8,3,2.8,5.0,1.3,4.1); hitBox('plot',7.4,2,4,-0.5,1,9.2);
+hitBox('intake',2.6,3,2.4,-5.6,1.3,5.4); hitBox('mill',6,3,4.6,-3.2,1.3,0.2); hitBox('press',3.6,4.2,3.4,2.9,2,-1.2); hitBox('shop',3.8,3,2.8,5.0,1.3,4.1); hitBox('plot',9.8,2,4,-0.5,1,9.2);
 function tapAt(x,y){
   if (paused) return;
   toNdc(x,y); ray.setFromCamera(ndc,camera); const h=ray.intersectObjects(hits,false)[0]; if (!h){ if (sel) closeSheet(); return; }
@@ -1036,7 +1036,7 @@ const plotCost=n=>Math.round(n*cm()/50)*50;
 const plotDur=()=>PT[G.plot.press-1]*(1-0.15*(G.plot.don-1));
 const plotEarn=()=>price()*L().batch;
 const plotRate=()=>G.plot.press?plotEarn()/plotDur():0;
-let PG=null, plotHook=null, plotDonkeys=[], plotTins=[]; const plotRun={t:0,dur:30};
+let PG=null, plotHooks=[], plotTins=[]; const plotRun={t:0,dur:30};
 function smallSign(text,parent,x,z){
   const c=document.createElement('canvas'); c.width=256; c.height=96; const x2=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
   const paint=()=>{ x2.fillStyle='#f3e6c4'; x2.fillRect(0,0,256,96); x2.fillStyle='#a8452f'; x2.font='44px "Lilita One", sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(text,128,52); tex.needsUpdate=true; };
@@ -1046,8 +1046,8 @@ function smallSign(text,parent,x,z){
 }
 function buildPlot(){
   if (PG) scene.remove(PG);
-  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotHook=null; plotDonkeys=[]; plotTins=[];
-  const P=G.plot, W=7.4, D=4;
+  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotHooks=[]; plotTins=[];
+  const P=G.plot, W=9.8, D=4;
   if (!P.land){
     box(W,0.06,D,'#bfa071',0,0.03,0,PG);
     for (const [x,z] of [[-W/2,-D/2],[W/2,-D/2],[-W/2,D/2],[W/2,D/2]]) box(0.14,0.9,0.14,'#7a5a3a',x,0.45,z,PG);
@@ -1061,22 +1061,19 @@ function buildPlot(){
   for (let x=-W/2;x<=W/2;x+=0.5){ box(0.48,0.5,0.4,x%1?'#d8c9a8':'#cbbb98',x,0.25,-D/2,PG); if (Math.abs(x+1.5)>1) box(0.48,0.5,0.4,x%1?'#cbbb98':'#e2d4b5',x,0.25,D/2,PG); }
   for (let z=-D/2+0.5;z<D/2;z+=0.5) for (const x of [-W/2,W/2]) box(0.4,0.5,0.48,z%1?'#d8c9a8':'#cbbb98',x,0.25,z,PG);
   if (!P.press){ smallSign('Plot 2',PG,-1.5,D/2+0.3); for (let i=0;i<5;i++) box(0.5,0.3,0.3,'#cdbd9b',-2.6+i*0.25,0.25+(i%2)*0.3,-1.2+(i%3)*0.3,PG); return; }
-  plotHook=stoneMill(PG,-1.6,-0.1,0.6);
-  PAR=PG; jar(-3.1,1.3,0.7); jar(-2.7,1.5,0.6,'#c27a48'); PAR=scene;
-  for (let i=0;i<6;i++){ const g=new THREE.Group(); g.position.set(1.9+(i%3)*0.5,0.1+Math.floor(i/3)*0.55,1.2); PG.add(g);
+  // every donkey turns its own mill stone
+  for (let i=0;i<P.don;i++) plotHooks.push(stoneMill(PG,-3+i*3,-0.1,0.5));
+  PAR=PG; jar(-4.4,1.5,0.6); jar(-4.05,1.6,0.5,'#c27a48'); PAR=scene;
+  for (let i=0;i<6;i++){ const g=new THREE.Group(); g.position.set(4.0+(i%2)*0.45,0.1+Math.floor(i/2)*0.55,1.4); PG.add(g);
     sbox(0.42,0.52,0.42,'#c9cfd3',0,0.26,0,g); box(0.43,0.08,0.43,'#e8b934',0,0.27,0,g); g.visible=false; plotTins.push(g); }
-  for (let i=1;i<P.don;i++){ const r=new THREE.Group(); r.position.set(i===1?2.6:0.9,0.1,i===1?-0.8:0.8); PG.add(r);
-    const d=makeDonkey(r), dg=r.children[r.children.length-1]; dg.position.set(-0.8,0,0); dg.scale.setScalar(0.8);
-    plotDonkeys.push({r,d,ph:0,sp:0.5+i*0.15}); }
-  if (P.press>=3) box(1,0.8,1,'#7a5636',-3.2,0.5,-1.4,PG);   // a crate store once it's bigger
+  if (P.press>=3) box(0.7,0.7,0.7,'#7a5636',-4.35,0.45,-1.5,PG);   // a crate store once it's bigger
 }
 function plotTick(dt){
   const P=G.plot; if (!P.press) return;
   plotRun.dur=plotDur(); plotRun.t+=dt;
   if (plotRun.t>=plotRun.dur){ plotRun.t=0; const p=plotEarn(); G.money+=p; floatAt(PX+1.5,2.6,PZ,'+'+fmt(p)+' ILS'); sfx('coin'); }
-  if (plotHook) plotHook(plotRun,plotRun.t/plotRun.dur,dt,t);
+  for (const h of plotHooks) h(plotRun,plotRun.t/plotRun.dur,dt,t);
   const n=Math.floor(plotRun.t/plotRun.dur*7); plotTins.forEach((g,i)=>g.visible=i<n);
-  for (const d of plotDonkeys){ d.r.rotation.y+=dt*d.sp; d.ph+=dt*d.sp*14; d.d.walk(d.ph,t); }
 }
 
 // ---------- save / offline ----------
@@ -1118,7 +1115,7 @@ function rowSpecs(k){
     const dur=plotDur(), nd=P.press<MAX?PT[P.press]*(1-0.15*(P.don-1)):0;
     out.push({name:'Stone press', val:`${fmt(plotEarn())} ILS every ${dur.toFixed(1)} s${nd?' → '+nd.toFixed(1)+' s':''}`, pips:pips(P.press), wk:'Sells at your shop price, even while you play.',
       btns:[P.press>=MAX?{txt:'Press maxed',cls:'btn',off:true,cost:0}:{txt:`Upgrade · ${fmt(plotCost(P_UP[P.press-1]))} ILS`,cls:'btn',cost:plotCost(P_UP[P.press-1]),act(){ P.press++; buildPlot(); floatAt(PX,2.4,PZ,'Upgraded!','w'); sfx('up'); }}]});
-    out.push({name:'Donkeys', val:`${P.don} of 3 · each extra one works 15% faster`, pips:pips(P.don,3), wk:'',
+    out.push({name:'Donkeys', val:`${P.don} of 3 · each brings its own mill stone, 15% faster`, pips:pips(P.don,3), wk:'',
       btns:[P.don>=3?{txt:'All donkeys bought',cls:'btn',off:true,cost:0}:{txt:`Buy a donkey · ${fmt(plotCost(P_DON[P.don-1]))} ILS`,cls:'btn hire',cost:plotCost(P_DON[P.don-1]),act(){ P.don++; buildPlot(); floatAt(PX,2.4,PZ,'New donkey!','w'); sfx('up'); }}]});
     return out; }
   const s=G.st[k], c=cm(), nm=L().names[k], out=[];
