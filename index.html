@@ -723,7 +723,7 @@ const mDesc=(k,l)=>{ const b=L().batch;
   return `${Math.round((L().price[0]+(l-1)*L().price[1])*seasonMul())} ILS per ${L().unit}`; };
 
 const freshSt=()=>({intake:{m:1,w:0},mill:{u:[1],w:[0]},press:{u:[1],w:[0]},shop:{m:1,w:0}});
-const fresh=()=>({lvl:0,money:500,lvlMoney:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt(),season:0});
+const fresh=()=>({lvl:0,money:500,lvlMoney:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt(),season:0,plot:{land:0,press:0,don:1}});
 let G=fresh();
 const workers={}, cool={};
 let sacks=0, pasteReady=0, tinStock=0, intakeBusy=0, t=0;
@@ -746,7 +746,7 @@ const taps={intake:ov('tapme','Tap'),mill:ov('tapme','Tap'),press:ov('tapme','Ta
 const machTap=(k,main)=>()=>{ const i=idle(k); if (i<=0) return main; const p=mpos[k][i]; return [p[0],p[1]-1.3,p[2]+1.6]; };
 const tapPos={intake:()=>[qSlot(0)[0],2.9,qSlot(0)[1]],mill:machTap('mill',[-4.4,2.6,2.0]),press:machTap('press',[2.9,4.0,-0.2]),shop:()=>[cSlot(0)[0],2.9,cSlot(0)[1]]};
 // upgrade buttons float above each station; dy lifts intake/shop clear of their Tap bubble
-const UPS={intake:{p:[-5.6,2.9,5.4],dy:34,n:'Intake'},mill:{p:[-2.2,5.4,-0.9],dy:0,n:'Mill'},press:{p:[2.9,6.3,-1.6],dy:0,n:'Press'},shop:{p:[4.8,2.9,4.6],dy:34,n:'Shop'}};
+const UPS={intake:{p:[-5.6,2.9,5.4],dy:34,n:'Intake'},mill:{p:[-2.2,5.4,-0.9],dy:0,n:'Mill'},press:{p:[2.9,6.3,-1.6],dy:0,n:'Press'},shop:{p:[4.8,2.9,4.6],dy:34,n:'Shop'},plot:{p:[-0.5,3.6,9.2],dy:0,n:'Plot 2'}};
 const ups={};
 for (const k in UPS){ const b=document.createElement('button'); b.className='ov upb'; b.textContent='⬆ '+UPS[k].n; b.setAttribute('aria-label','Upgrade '+UPS[k].n);
   b.onclick=()=> sel===k ? closeSheet() : openSheet(k); stage.insertBefore(b,$('banner')); ups[k]=b; }
@@ -796,11 +796,12 @@ function toNdc(x,y){ ndc.set(((x-SR.left)/SR.width)*2-1, -((y-SR.top)/SR.height)
 function groundAt(x,y){ toNdc(x,y); ray.setFromCamera(ndc,camera); const out=new THREE.Vector3(); return ray.ray.intersectPlane(plane,out)?out:null; }
 const hits=[];
 function hitBox(k,w,h,d,x,y,z,extra=false){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({visible:false})); m.position.set(x,y,z); m.userData={k,extra}; scene.add(m); hits.push(m); }
-hitBox('intake',2.6,3,2.4,-5.6,1.3,5.4); hitBox('mill',6,3,4.6,-3.2,1.3,0.2); hitBox('press',3.6,4.2,3.4,2.9,2,-1.2); hitBox('shop',3.8,3,2.8,5.0,1.3,4.1);
+hitBox('intake',2.6,3,2.4,-5.6,1.3,5.4); hitBox('mill',6,3,4.6,-3.2,1.3,0.2); hitBox('press',3.6,4.2,3.4,2.9,2,-1.2); hitBox('shop',3.8,3,2.8,5.0,1.3,4.1); hitBox('plot',7.4,2,4,-0.5,1,9.2);
 function tapAt(x,y){
   if (paused) return;
   toNdc(x,y); ray.setFromCamera(ndc,camera); const h=ray.intersectObjects(hits,false)[0]; if (!h){ if (sel) closeSheet(); return; }
   const k=h.object.userData.k, p=h.point;
+  if (k==='plot'){ sel==='plot'?closeSheet():openSheet('plot'); return; }
   if (canDo(k) && (MACH(k) || !G.st[k].w)) doAction(k);
   else if (hasWorker(k)) openSheet(k);
   else { floatAt(p.x,p.y+1,p.z,whyNot(k),'bad'); sfx('err'); }
@@ -890,14 +891,14 @@ function setupLevel(){
 }
 let armedS=false;
 function newSeason(){
-  G.season=(G.season||0)+1; G.lvl=0; G.money=500; G.lvlMoney=500; G.lt=0; G.lost=0; G.won=false; G.st=freshSt(); G.bays=0; G.slots=[]; G.lvNote=-1;
+  G.season=(G.season||0)+1; G.lvl=0; G.money=500; G.lvlMoney=500; G.lt=0; G.lost=0; G.won=false; G.st=freshSt(); G.bays=0; G.slots=[]; G.lvNote=-1; G.plot=freshPlot(); G.lvlPlot=freshPlot(); buildPlot();
   setupLevel(); save(); sfx('level'); banner(`Season ${G.season+1}`,`Back to the village press. Oil now sells for +${Math.round((seasonMul()-1)*100)}% forever.`,5);
 }
 function moveUp(){
   if (L().final && G.won){ if (!armedS){ armedS=true; ui(); return; } armedS=false; newSeason(); return; }
   if (G.money<L().move) return;
   if (L().final){ if (!G.won){ G.won=true; banner('Olive oil empire!','You can now start a new season with a permanent +25% oil price.',6); sfx('level'); save(); } return; }
-  G.money-=L().move; G.lvl++; G.lvlMoney=G.money; G.lt=0; G.lost=0; G.st=freshSt(); G.bays=0; G.slots=[];
+  G.money-=L().move; G.lvl++; G.lvlMoney=G.money; G.lt=0; G.lost=0; G.st=freshSt(); G.bays=0; G.slots=[]; G.lvlPlot={...G.plot};
   setupLevel(); save(); sfx('level');
   banner(`Level ${G.lvl+1}`,L().name,4);
 }
@@ -984,7 +985,7 @@ function spawnFarmer(){
 }
 function update(dt){
   t+=dt; G.lt+=dt;
-  weather(dt); sky(dt);
+  weather(dt); sky(dt); plotTick(dt);
   // rain keeps some farmers at home
   arriveT-=dt*(1-0.5*rain.amt); if (arriveT<=0){ const n=1+Math.floor(Math.random()*3); arriveT=arriveGap()*n*(0.8+Math.random()*0.4); groupN+=n; }
   if (groupN>0){ groupT-=dt; if (groupT<=0){ groupN--; groupT=0.7; spawnFarmer(); } }
@@ -1026,6 +1027,57 @@ function update(dt){
   productMeshes.forEach((s,k)=>s.visible=k<tinStock);
 }
 
+// ---------- second plot: land in front of the press with its own stone press and donkeys, runs by itself ----------
+const PX=-0.5, PZ=9.2, PT=[30,26,22,18,15], P_UP=[1500,3000,5500,9000], P_DON=[2000,4500];
+const freshPlot=()=>({land:0,press:0,don:1});
+const plotCost=n=>Math.round(n*cm()/50)*50;
+const plotDur=()=>PT[G.plot.press-1]*(1-0.15*(G.plot.don-1));
+const plotEarn=()=>price()*L().batch;
+const plotRate=()=>G.plot.press?plotEarn()/plotDur():0;
+let PG=null, plotHook=null, plotDonkeys=[], plotTins=[]; const plotRun={t:0,dur:30};
+const plotTag=ov('tag',tagHtml); plotTag.firstChild.textContent='Plot 2';
+function smallSign(text,parent,x,z){
+  const c=document.createElement('canvas'); c.width=256; c.height=96; const x2=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
+  const paint=()=>{ x2.fillStyle='#f3e6c4'; x2.fillRect(0,0,256,96); x2.fillStyle='#a8452f'; x2.font='44px "Lilita One", sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(text,128,52); tex.needsUpdate=true; };
+  paint(); document.fonts && document.fonts.ready.then(paint);
+  box(0.12,1.5,0.12,'#6b4a2c',x,0.75,z,parent); box(1.7,0.7,0.08,'#6b4a2c',x,1.35,z-0.05,parent);
+  const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.6),new THREE.MeshBasicMaterial({map:tex,toneMapped:false})); pl.position.set(x,1.35,z); parent.add(pl);
+}
+function buildPlot(){
+  if (PG) scene.remove(PG);
+  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotHook=null; plotDonkeys=[]; plotTins=[];
+  const P=G.plot, W=7.4, D=4;
+  if (!P.land){
+    box(W,0.06,D,'#bfa071',0,0.03,0,PG);
+    for (const [x,z] of [[-W/2,-D/2],[W/2,-D/2],[-W/2,D/2],[W/2,D/2]]) box(0.14,0.9,0.14,'#7a5a3a',x,0.45,z,PG);
+    for (const z of [-D/2,D/2]) box(W,0.05,0.05,'#d8c9a8',0,0.8,z,PG);
+    for (const x of [-W/2,W/2]) box(0.05,0.05,D,'#d8c9a8',x,0.8,0,PG);
+    smallSign('For sale',PG,0,D/2+0.1);
+    return;
+  }
+  box(W,0.1,D,'#b39368',0,0.05,0,PG);
+  // a low dry-stone wall with a gap at the front for the donkeys
+  for (let x=-W/2;x<=W/2;x+=0.5){ box(0.48,0.5,0.4,x%1?'#d8c9a8':'#cbbb98',x,0.25,-D/2,PG); if (Math.abs(x+1.5)>1) box(0.48,0.5,0.4,x%1?'#cbbb98':'#e2d4b5',x,0.25,D/2,PG); }
+  for (let z=-D/2+0.5;z<D/2;z+=0.5) for (const x of [-W/2,W/2]) box(0.4,0.5,0.48,z%1?'#d8c9a8':'#cbbb98',x,0.25,z,PG);
+  if (!P.press){ smallSign('Plot 2',PG,-1.5,D/2+0.3); for (let i=0;i<5;i++) box(0.5,0.3,0.3,'#cdbd9b',-2.6+i*0.25,0.25+(i%2)*0.3,-1.2+(i%3)*0.3,PG); return; }
+  plotHook=stoneMill(PG,-1.6,-0.1,0.6);
+  PAR=PG; jar(-3.1,1.3,0.7); jar(-2.7,1.5,0.6,'#c27a48'); PAR=scene;
+  for (let i=0;i<6;i++){ const g=new THREE.Group(); g.position.set(1.9+(i%3)*0.5,0.1+Math.floor(i/3)*0.55,1.2); PG.add(g);
+    sbox(0.42,0.52,0.42,'#c9cfd3',0,0.26,0,g); box(0.43,0.08,0.43,'#e8b934',0,0.27,0,g); g.visible=false; plotTins.push(g); }
+  for (let i=1;i<P.don;i++){ const r=new THREE.Group(); r.position.set(i===1?2.7:1.0,0.1,-0.8); PG.add(r);
+    const d=makeDonkey(r), dg=r.children[r.children.length-1]; dg.position.set(-0.8,0,0); dg.scale.setScalar(0.8);
+    plotDonkeys.push({r,d,ph:0,sp:0.5+i*0.15}); }
+  if (P.press>=3) box(1,0.8,1,'#7a5636',-3.2,0.5,-1.4,PG);   // a crate store once it's bigger
+}
+function plotTick(dt){
+  const P=G.plot; if (!P.press) return;
+  plotRun.dur=plotDur(); plotRun.t+=dt;
+  if (plotRun.t>=plotRun.dur){ plotRun.t=0; const p=plotEarn(); G.money+=p; floatAt(PX+1.5,2.6,PZ,'+'+fmt(p)+' ILS'); sfx('coin'); }
+  if (plotHook) plotHook(plotRun,plotRun.t/plotRun.dur,dt,t);
+  const n=Math.floor(plotRun.t/plotRun.dur*7); plotTins.forEach((g,i)=>g.visible=i<n);
+  for (const d of plotDonkeys){ d.r.rotation.y+=dt*d.sp; d.ph+=dt*d.sp*14; d.d.walk(d.ph,t); }
+}
+
 // ---------- save / offline ----------
 const KEY='olive-press-tycoon-v1';
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify({...G,live:{q:queue.length,sacks,paste:pasteReady,tins:tinStock},savedAt:Date.now()})); }catch(_){} }
@@ -1057,6 +1109,17 @@ function rowSpecs(k){
     return d.goals.map(g=>{ const have=Math.min(g.n,d[g.k]), ok=have>=g.n;
       return {name:GOALS[g.k](g.n), val:g.k==='earned'?`${fmt(have)} / ${fmt(g.n)}`:`${have} / ${g.n}`, pips:pips(Math.floor(have/g.n*10),10), wk:`Reward: ${fmt(rw)} ILS`,
         btns:[g.done?{txt:'Claimed ✓',cls:'btn',off:true,cost:0}:ok?{txt:`Claim ${fmt(rw)} ILS`,cls:'btn hire',cost:0,act(){ g.done=true; G.money+=rw; sfx('coin'); sfx('up'); }}:{txt:'Not yet',cls:'btn',off:true,cost:0}]}; }); }
+  if (k==='plot'){ const P=G.plot, out=[];
+    if (!P.land){ const c=plotCost(3000); return [{name:'Land next door', val:'Room for a second stone press', pips:'', wk:'Your second press runs by itself, no worker needed.',
+      btns:[{txt:`Buy the land · ${fmt(c)} ILS`,cls:'btn exp',cost:c,act(){ P.land=1; buildPlot(); floatAt(PX,2.4,PZ,'Land bought!','w'); sfx('build'); }}]}]; }
+    if (!P.press){ const c=plotCost(2500); return [{name:'Second press', val:'A stone mill turned by a donkey', pips:'', wk:'It crushes, presses and sells by itself.',
+      btns:[{txt:`Build the press · ${fmt(c)} ILS`,cls:'btn hire',cost:c,act(){ P.press=1; plotRun.t=0; buildPlot(); floatAt(PX,2.4,PZ,'Press built!','w'); sfx('build'); }}]}]; }
+    const dur=plotDur(), nd=P.press<MAX?PT[P.press]*(1-0.15*(P.don-1)):0;
+    out.push({name:'Stone press', val:`${fmt(plotEarn())} ILS every ${dur.toFixed(1)} s${nd?' → '+nd.toFixed(1)+' s':''}`, pips:pips(P.press), wk:'Sells at your shop price, even while you play.',
+      btns:[P.press>=MAX?{txt:'Press maxed',cls:'btn',off:true,cost:0}:{txt:`Upgrade · ${fmt(plotCost(P_UP[P.press-1]))} ILS`,cls:'btn',cost:plotCost(P_UP[P.press-1]),act(){ P.press++; buildPlot(); floatAt(PX,2.4,PZ,'Upgraded!','w'); sfx('up'); }}]});
+    out.push({name:'Donkeys', val:`${P.don} of 3 · each extra one works 15% faster`, pips:pips(P.don,3), wk:'',
+      btns:[P.don>=3?{txt:'All donkeys bought',cls:'btn',off:true,cost:0}:{txt:`Buy a donkey · ${fmt(plotCost(P_DON[P.don-1]))} ILS`,cls:'btn hire',cost:plotCost(P_DON[P.don-1]),act(){ P.don++; buildPlot(); floatAt(PX,2.4,PZ,'New donkey!','w'); sfx('up'); }}]});
+    return out; }
   const s=G.st[k], c=cm(), nm=L().names[k], out=[];
   const card=(name,l,w,setL,setW,spot)=>{
     const btns=[], mc=BASE[k].mCost[l-1]*c;
@@ -1094,11 +1157,11 @@ function resetArmed(){ armed=false; $('bReset').textContent='Start over'; $('bRe
   armedS=false; armedL=false; $('bRestart').textContent='Restart this level'; $('bRestart').classList.remove('armed'); }
 // back to how the level looked when you arrived: one machine of each, no workers, the money you came with
 $('bRestart').onclick=()=>{ if (!armedL){ armedL=true; $('bRestart').textContent=`Tap again: restart Level ${G.lvl+1} with ${fmt(G.lvlMoney??G.money)} ILS`; $('bRestart').classList.add('armed'); return; }
-  G.money=G.lvlMoney??G.money; G.lvlMoney=G.money; G.lt=0; G.lost=0; G.st=freshSt(); G.bays=0; G.slots=[]; G.lvNote=-1;
+  G.money=G.lvlMoney??G.money; G.lvlMoney=G.money; G.lt=0; G.lost=0; G.st=freshSt(); G.bays=0; G.slots=[]; G.lvNote=-1; G.plot={...(G.lvlPlot||freshPlot())}; buildPlot();
   setupLevel(); resetArmed(); save(); banner(`Level ${G.lvl+1}`,'Fresh start',3); };
 $('bReset').onclick=()=>{ if (!armed){ armed=true; $('bReset').textContent='Tap again to erase all progress'; $('bReset').classList.add('armed'); return; }
-  G=fresh(); try{ localStorage.removeItem(KEY); }catch(_){} setupLevel(); resetArmed(); banner('Level 1',L().name); };
-function affordable(k){ if (!BASE[k]) return false; return rowSpecs(k).some(r=>r.btns.some(b=>!b.off&&b.act&&G.money>=b.cost)); }
+  G=fresh(); try{ localStorage.removeItem(KEY); }catch(_){} buildPlot(); setupLevel(); resetArmed(); banner('Level 1',L().name); };
+function affordable(k){ if (!BASE[k]&&k!=='plot') return false; return rowSpecs(k).some(r=>r.btns.some(b=>!b.off&&b.act&&G.money>=b.cost)); }
 function ui(){
   $('money').textContent=fmt(G.money)+' ILS';
   const q=$('cQueue'); q.textContent=`Queue ${queue.length}/${QMAX}`; q.className='chip'+(queue.length>=QMAX?' bad':queue.length>=5?' warn':'');
@@ -1107,6 +1170,7 @@ function ui(){
   $('cTins').textContent=`${L().unit==='tin'?'Tins':'Cases'} ${units(tinStock)}`;
   const l=$('cLost'); if (G.lost!==lostSeen){ lostSeen=G.lost; lostAt=t; } l.textContent=`Lost ${G.lost}`; l.className='chip'+(G.lost&&t-lostAt<30?' bad':'');
   for (const k in ups) ups[k].classList.toggle('ready',affordable(k));
+  ups.plot.textContent=G.plot.land?'⬆ Plot 2':'Land for sale';
   if (G.money>=L().move && G.lvNote!==G.lvl && !(L().final&&G.won)){ G.lvNote=G.lvl; const e=$('lvPop'); e.textContent=L().final?'Final goal ready! Tap to finish':`Level ${G.lvl+2} unlocked! Tap to move up`; e.hidden=false; clearTimeout(e.t); e.t=setTimeout(()=>e.hidden=true,9000); sfx('up'); }
   $('miniBar').style.width=Math.min(100,G.money/L().move*100)+'%';
   $('mvLabel').textContent=L().final?(G.won?'New season':'Goal'):`Level ${G.lvl+2}`;
@@ -1123,7 +1187,7 @@ function ui(){
     const b=$('bMove'); b.disabled=G.money<L().move && !(L().final&&G.won);
     b.textContent = L().final ? (G.won?(armedS?'Tap again to start the new season':`Start season ${G.season+2}`):'Claim the title') : `Move up · ${fmt(L().move)} ILS`;
     return; }
-  $('shTitle').textContent=sel==='goals'?'Daily goals':L().names[sel][0];
+  $('shTitle').textContent=sel==='goals'?'Daily goals':sel==='plot'?'Second plot':L().names[sel][0];
   curRows=rowSpecs(sel);
   const sig=sel+':'+curRows.map(r=>r.name+r.btns.length).join('|');
   if (sig!==rowSig){ rowSig=sig;
@@ -1143,12 +1207,13 @@ if (saved){ G={...fresh(),...saved}; delete G.savedAt; delete G.live;
   if (!Array.isArray(G.slots)) G.slots=[]; G.bays=G.bays||0;
   // older saves put presses in slot 0; mills now go on the left (same-type order is unchanged, so levels stay matched)
   for (let b=0;b<G.bays;b++) if (G.slots[2*b]==='press' && G.slots[2*b+1]==='mill'){ G.slots[2*b]='mill'; G.slots[2*b+1]='press'; } }
+G.plot={...freshPlot(),...(G.plot||{})}; buildPlot();
 setupLevel();
 if (saved && saved.live){ const v=saved.live; sacks=Math.min(v.sacks||0,pileCap()); pasteReady=Math.min(v.paste||0,pasteCap()); tinStock=Math.min(v.tins||0,STOCK);
   for (let i=0;i<Math.min(v.q||0,QMAX);i++){ spawnFarmer(); const f=queue[queue.length-1]; if (f){ const [x,z]=qSlot(i); f.g.position.set(x,0,z); } }
   if (v.q) groupN=0; }
 if (saved && saved.savedAt){
-  const away=Math.min(3*3600,(Date.now()-saved.savedAt)/1000), earned=offlineRate()*away;
+  const away=Math.min(3*3600,(Date.now()-saved.savedAt)/1000), earned=(offlineRate()+plotRate()*0.5)*away;
   if (earned>1){ G.money+=earned; banner('Welcome back',`Your workers earned ${fmt(earned)} ILS while you were away.`,5); }
   else banner(`Level ${G.lvl+1}`,L().name);
 } else banner('Abu Yousef Press','Tap the farmer to take his sack. Hire workers when you can.',5);
@@ -1161,6 +1226,7 @@ function frame(now){
   if (!paused) update(dt);
   if (ptrs.size===0 && (Math.abs(vel.x)+Math.abs(vel.z))>0.05){ cam.tx+=vel.x*dt; cam.tz+=vel.z*dt; const k=Math.pow(0.02,dt); vel.x*=k; vel.z*=k; applyCam(); }
   for (const k of ['mill','press']) tags[k].forEach((el,i)=>{ const r=runs[k][i]; place(el,...mpos[k][i]); el.lastChild.firstChild.style.width=(r?r.t/r.dur*100:0)+'%'; });
+  plotTag.style.display=G.plot.press?'':'none'; if (G.plot.press){ place(plotTag,PX-1.6,2.4,PZ-0.1); plotTag.lastChild.firstChild.style.width=plotRun.t/plotRun.dur*100+'%'; }
   for (const c of customers) if (c.tag) place(c.tag,c.g.position.x,2.9,c.g.position.z);
   for (const k in ups){ const e=ups[k]; place(e,...UPS[k].p); if (UPS[k].dy) e.style.transform+=` translateY(-${UPS[k].dy}px)`; }
   if (sel) placeSheet();
