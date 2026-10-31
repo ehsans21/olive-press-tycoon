@@ -77,6 +77,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 @keyframes popin{from{opacity:0;scale:.9}}
 .sheet .rows{grid-template-columns:1fr}
 .upb{pointer-events:auto;z-index:2;font:inherit;font-size:12px;font-weight:700;cursor:pointer;border:0;border-radius:999px;padding:5px 11px;background:rgba(27,33,23,.85);color:var(--fg);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.upb.pl{display:flex;flex-direction:column;align-items:center;gap:3px}
 .upb.ready{background:var(--green);color:#10200f;animation:pulseg 1.4s infinite}
 .upb.sel{outline:2px solid var(--oil)}
 @keyframes pulseg{0%{box-shadow:0 0 0 0 rgba(91,191,122,.7)}100%{box-shadow:0 0 0 12px rgba(91,191,122,0)}}
@@ -746,10 +747,11 @@ const taps={intake:ov('tapme','Tap'),mill:ov('tapme','Tap'),press:ov('tapme','Ta
 const machTap=(k,main)=>()=>{ const i=idle(k); if (i<=0) return main; const p=mpos[k][i]; return [p[0],p[1]-1.3,p[2]+1.6]; };
 const tapPos={intake:()=>[qSlot(0)[0],2.9,qSlot(0)[1]],mill:machTap('mill',[-4.4,2.6,2.0]),press:machTap('press',[2.9,4.0,-0.2]),shop:()=>[cSlot(0)[0],2.9,cSlot(0)[1]]};
 // upgrade buttons float above each station; dy lifts intake/shop clear of their Tap bubble
-const UPS={intake:{p:[-5.6,2.9,5.4],dy:34,n:'Intake'},mill:{p:[-2.2,5.4,-0.9],dy:0,n:'Mill'},press:{p:[2.9,6.3,-1.6],dy:0,n:'Press'},shop:{p:[4.8,2.9,4.6],dy:34,n:'Shop'},plot:{p:[-0.5,3.6,9.2],dy:0,n:'Plot 2'}};
+const UPS={intake:{p:[-5.6,2.9,5.4],dy:34,n:'Intake'},mill:{p:[-2.2,5.4,-0.9],dy:0,n:'Mill'},press:{p:[2.9,6.3,-1.6],dy:0,n:'Press'},shop:{p:[4.8,2.9,4.6],dy:34,n:'Shop'},plot:{p:[-0.5,2.2,9.6],dy:0,n:'Plot 2'}};
 const ups={};
 for (const k in UPS){ const b=document.createElement('button'); b.className='ov upb'; b.textContent='⬆ '+UPS[k].n; b.setAttribute('aria-label','Upgrade '+UPS[k].n);
   b.onclick=()=> sel===k ? closeSheet() : openSheet(k); stage.insertBefore(b,$('banner')); ups[k]=b; }
+ups.plot.classList.add('pl'); ups.plot.innerHTML=tagHtml;
 const scr=p=>{ v.set(...p).project(camera); return [(v.x*.5+.5)*SR.width,(-v.y*.5+.5)*SR.height,v.z]; };
 // the card opens next to its station: above it when the station sits low on screen, below when high
 function placeSheet(){
@@ -1035,7 +1037,6 @@ const plotDur=()=>PT[G.plot.press-1]*(1-0.15*(G.plot.don-1));
 const plotEarn=()=>price()*L().batch;
 const plotRate=()=>G.plot.press?plotEarn()/plotDur():0;
 let PG=null, plotHook=null, plotDonkeys=[], plotTins=[]; const plotRun={t:0,dur:30};
-const plotTag=ov('tag',tagHtml); plotTag.firstChild.textContent='Plot 2';
 function smallSign(text,parent,x,z){
   const c=document.createElement('canvas'); c.width=256; c.height=96; const x2=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
   const paint=()=>{ x2.fillStyle='#f3e6c4'; x2.fillRect(0,0,256,96); x2.fillStyle='#a8452f'; x2.font='44px "Lilita One", sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(text,128,52); tex.needsUpdate=true; };
@@ -1064,7 +1065,7 @@ function buildPlot(){
   PAR=PG; jar(-3.1,1.3,0.7); jar(-2.7,1.5,0.6,'#c27a48'); PAR=scene;
   for (let i=0;i<6;i++){ const g=new THREE.Group(); g.position.set(1.9+(i%3)*0.5,0.1+Math.floor(i/3)*0.55,1.2); PG.add(g);
     sbox(0.42,0.52,0.42,'#c9cfd3',0,0.26,0,g); box(0.43,0.08,0.43,'#e8b934',0,0.27,0,g); g.visible=false; plotTins.push(g); }
-  for (let i=1;i<P.don;i++){ const r=new THREE.Group(); r.position.set(i===1?2.7:1.0,0.1,-0.8); PG.add(r);
+  for (let i=1;i<P.don;i++){ const r=new THREE.Group(); r.position.set(i===1?2.6:0.9,0.1,i===1?-0.8:0.8); PG.add(r);
     const d=makeDonkey(r), dg=r.children[r.children.length-1]; dg.position.set(-0.8,0,0); dg.scale.setScalar(0.8);
     plotDonkeys.push({r,d,ph:0,sp:0.5+i*0.15}); }
   if (P.press>=3) box(1,0.8,1,'#7a5636',-3.2,0.5,-1.4,PG);   // a crate store once it's bigger
@@ -1170,7 +1171,7 @@ function ui(){
   $('cTins').textContent=`${L().unit==='tin'?'Tins':'Cases'} ${units(tinStock)}`;
   const l=$('cLost'); if (G.lost!==lostSeen){ lostSeen=G.lost; lostAt=t; } l.textContent=`Lost ${G.lost}`; l.className='chip'+(G.lost&&t-lostAt<30?' bad':'');
   for (const k in ups) ups[k].classList.toggle('ready',affordable(k));
-  ups.plot.textContent=G.plot.land?'⬆ Plot 2':'Land for sale';
+  ups.plot.firstChild.textContent=G.plot.land?'⬆ Plot 2':'Land for sale'; ups.plot.lastChild.style.display=G.plot.press?'':'none';
   if (G.money>=L().move && G.lvNote!==G.lvl && !(L().final&&G.won)){ G.lvNote=G.lvl; const e=$('lvPop'); e.textContent=L().final?'Final goal ready! Tap to finish':`Level ${G.lvl+2} unlocked! Tap to move up`; e.hidden=false; clearTimeout(e.t); e.t=setTimeout(()=>e.hidden=true,9000); sfx('up'); }
   $('miniBar').style.width=Math.min(100,G.money/L().move*100)+'%';
   $('mvLabel').textContent=L().final?(G.won?'New season':'Goal'):`Level ${G.lvl+2}`;
@@ -1226,7 +1227,7 @@ function frame(now){
   if (!paused) update(dt);
   if (ptrs.size===0 && (Math.abs(vel.x)+Math.abs(vel.z))>0.05){ cam.tx+=vel.x*dt; cam.tz+=vel.z*dt; const k=Math.pow(0.02,dt); vel.x*=k; vel.z*=k; applyCam(); }
   for (const k of ['mill','press']) tags[k].forEach((el,i)=>{ const r=runs[k][i]; place(el,...mpos[k][i]); el.lastChild.firstChild.style.width=(r?r.t/r.dur*100:0)+'%'; });
-  plotTag.style.display=G.plot.press?'':'none'; if (G.plot.press){ place(plotTag,PX-1.6,2.4,PZ-0.1); plotTag.lastChild.firstChild.style.width=plotRun.t/plotRun.dur*100+'%'; }
+  if (G.plot.press) ups.plot.lastChild.firstChild.style.width=plotRun.t/plotRun.dur*100+'%';
   for (const c of customers) if (c.tag) place(c.tag,c.g.position.x,2.9,c.g.position.z);
   for (const k in ups){ const e=ups[k]; place(e,...UPS[k].p); if (UPS[k].dy) e.style.transform+=` translateY(-${UPS[k].dy}px)`; }
   if (sel) placeSheet();
