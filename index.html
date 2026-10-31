@@ -263,7 +263,7 @@ function tree(x,z,s=1){
     }
   }
 }
-[[-12,-9],[-31,-9],[-14,-15],[-8,-16],[-25,10],[21,-9],[25,11],[12,-16],[-4,-12],[4,-13],[37,-1],[-24,-8],[0,-17],[-35,3],[29,-9],[-19,-11],[20,-14]].forEach(([x,z])=>tree(x,z,0.9+rnd()*0.3));
+[[-12,-9],[-31,-9],[-14,-15],[-8,-16],[-25,10],[21,-9],[25,11],[12,-16],[-4,-12],[4,-13],[38,-13],[-24,-8],[0,-17],[-35,3],[29,-9],[-19,-11],[20,-14]].forEach(([x,z])=>tree(x,z,0.9+rnd()*0.3));
 { const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:'#fff',roughness:.85,flatShading:true}),leafList.length); im.castShadow=true; im.receiveShadow=true;
   leafList.forEach((l,i)=>{ dm.position.copy(l.p); dm.rotation.set(rnd(),rnd()*6,rnd()); dm.scale.set(l.r*1.15,l.r*0.72,l.r); dm.updateMatrix(); im.setMatrixAt(i,dm.matrix); im.setColorAt(i,l.c); });
   scene.add(im);
@@ -724,7 +724,7 @@ const mDesc=(k,l)=>{ const b=L().batch;
   return `${Math.round((L().price[0]+(l-1)*L().price[1])*seasonMul())} ILS per ${L().unit}`; };
 
 const freshSt=()=>({intake:{m:1,w:0},mill:{u:[1],w:[0]},press:{u:[1],w:[0]},shop:{m:1,w:0}});
-const fresh=()=>({lvl:0,money:500,lvlMoney:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt(),season:0,plot:{land:0,press:0,don:1}});
+const fresh=()=>({lvl:0,money:500,lvlMoney:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt(),season:0,plot:{land:0,press:0,don:0}});
 let G=fresh();
 const workers={}, cool={};
 let sacks=0, pasteReady=0, tinStock=0, intakeBusy=0, t=0;
@@ -747,11 +747,12 @@ const taps={intake:ov('tapme','Tap'),mill:ov('tapme','Tap'),press:ov('tapme','Ta
 const machTap=(k,main)=>()=>{ const i=idle(k); if (i<=0) return main; const p=mpos[k][i]; return [p[0],p[1]-1.3,p[2]+1.6]; };
 const tapPos={intake:()=>[qSlot(0)[0],2.9,qSlot(0)[1]],mill:machTap('mill',[-4.4,2.6,2.0]),press:machTap('press',[2.9,4.0,-0.2]),shop:()=>[cSlot(0)[0],2.9,cSlot(0)[1]]};
 // upgrade buttons float above each station; dy lifts intake/shop clear of their Tap bubble
-const UPS={intake:{p:[-5.6,2.9,5.4],dy:34,n:'Intake'},mill:{p:[-2.2,5.4,-0.9],dy:0,n:'Mill'},press:{p:[2.9,6.3,-1.6],dy:0,n:'Press'},shop:{p:[4.8,2.9,4.6],dy:34,n:'Shop'},plot:{p:[-0.5,2.2,9.6],dy:0,n:'Plot 2'}};
+const UPS={intake:{p:[-5.6,2.9,5.4],dy:34,n:'Intake'},mill:{p:[-2.2,5.4,-0.9],dy:0,n:'Mill'},press:{p:[2.9,6.3,-1.6],dy:0,n:'Press'},shop:{p:[4.8,2.9,4.6],dy:34,n:'Shop'},plot:{p:[16,5.2,0],dy:0,n:'Plot 2'}};
 const ups={};
 for (const k in UPS){ const b=document.createElement('button'); b.className='ov upb'; b.textContent='⬆ '+UPS[k].n; b.setAttribute('aria-label','Upgrade '+UPS[k].n);
   b.onclick=()=> sel===k ? closeSheet() : openSheet(k); stage.insertBefore(b,$('banner')); ups[k]=b; }
 ups.plot.classList.add('pl'); ups.plot.innerHTML=tagHtml;
+ups.plot.onclick=()=>{ if (sel==='plot') return closeSheet(); if (plotOff){ cam.tx=PX; vel.x=vel.z=0; applyCam(); } openSheet('plot'); };
 const scr=p=>{ v.set(...p).project(camera); return [(v.x*.5+.5)*SR.width,(-v.y*.5+.5)*SR.height,v.z]; };
 // the card opens next to its station: above it when the station sits low on screen, below when high
 function placeSheet(){
@@ -798,7 +799,7 @@ function toNdc(x,y){ ndc.set(((x-SR.left)/SR.width)*2-1, -((y-SR.top)/SR.height)
 function groundAt(x,y){ toNdc(x,y); ray.setFromCamera(ndc,camera); const out=new THREE.Vector3(); return ray.ray.intersectPlane(plane,out)?out:null; }
 const hits=[];
 function hitBox(k,w,h,d,x,y,z,extra=false){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({visible:false})); m.position.set(x,y,z); m.userData={k,extra}; scene.add(m); hits.push(m); }
-hitBox('intake',2.6,3,2.4,-5.6,1.3,5.4); hitBox('mill',6,3,4.6,-3.2,1.3,0.2); hitBox('press',3.6,4.2,3.4,2.9,2,-1.2); hitBox('shop',3.8,3,2.8,5.0,1.3,4.1); hitBox('plot',9.8,2,4,-0.5,1,9.2);
+hitBox('intake',2.6,3,2.4,-5.6,1.3,5.4); hitBox('mill',6,3,4.6,-3.2,1.3,0.2); hitBox('press',3.6,4.2,3.4,2.9,2,-1.2); hitBox('shop',3.8,3,2.8,5.0,1.3,4.1); hitBox('plot',13,3.5,9,16,1.7,0); const plotHit=hits[hits.length-1];
 function tapAt(x,y){
   if (paused) return;
   toNdc(x,y); ray.setFromCamera(ndc,camera); const h=ray.intersectObjects(hits,false)[0]; if (!h){ if (sel) closeSheet(); return; }
@@ -877,6 +878,7 @@ function buildExtras(){
   }
   for (const key in workers) if (workers[key] && MACH(workers[key].k)){ scene.remove(workers[key].g); delete workers[key]; }
   for (const k of ['mill','press']) G.st[k].w.forEach((w,i)=>{ if (w) spawnWorker(k,i); });
+  placePlot();
 }
 function setupLevel(){
   if (LG) scene.remove(LG);
@@ -1029,14 +1031,17 @@ function update(dt){
   productMeshes.forEach((s,k)=>s.visible=k<tinStock);
 }
 
-// ---------- second plot: land in front of the press with its own stone press and donkeys, runs by itself ----------
-const PX=-0.5, PZ=9.2, PT=[30,26,22,18,15], P_UP=[1500,3000,5500,9000], P_DON=[2000,4500];
-const freshPlot=()=>({land:0,press:0,don:1});
+// ---------- second plot: land next door with a whole second village press house, runs by itself ----------
+// it always stands to the right of the last right-hand extension, so the two never overlap
+const PT=[30,26,22,18,15], P_UP=[1500,3000,5500,9000];
+let PX=16; const PZ=0;
+const freshPlot=()=>({land:0,press:0,don:0});
 const plotCost=n=>Math.round(n*cm()/50)*50;
-const plotDur=()=>PT[G.plot.press-1]*(1-0.15*(G.plot.don-1));
+const plotDur=()=>PT[G.plot.press-1];
 const plotEarn=()=>price()*L().batch;
-const plotRate=()=>G.plot.press?plotEarn()/plotDur():0;
-let PG=null, plotHooks=[], plotTins=[]; const plotRun={t:0,dur:30};
+const plotOn=()=>G.plot.press&&G.plot.don;
+const plotRate=()=>plotOn()?plotEarn()/plotDur():0;
+let PG=null, plotH=null, plotOff=false; const plotRun={t:0,dur:30};
 function smallSign(text,parent,x,z){
   const c=document.createElement('canvas'); c.width=256; c.height=96; const x2=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
   const paint=()=>{ x2.fillStyle='#f3e6c4'; x2.fillRect(0,0,256,96); x2.fillStyle='#a8452f'; x2.font='44px "Lilita One", sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(text,128,52); tex.needsUpdate=true; };
@@ -1044,36 +1049,41 @@ function smallSign(text,parent,x,z){
   box(0.12,1.5,0.12,'#6b4a2c',x,0.75,z,parent); box(1.7,0.7,0.08,'#6b4a2c',x,1.35,z-0.05,parent);
   const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.6),new THREE.MeshBasicMaterial({map:tex,toneMapped:false})); pl.position.set(x,1.35,z); parent.add(pl);
 }
+function placePlot(){
+  const lv=L(); PX=lv.hw+lv.bw*Math.ceil(G.bays/2)+3+6.5;
+  if (PG) PG.position.x=PX; UPS.plot.p[0]=PX; plotHit.position.x=PX; BOUND.x1=Math.max(34,PX+4);
+}
 function buildPlot(){
   if (PG) scene.remove(PG);
-  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotHooks=[]; plotTins=[];
-  const P=G.plot, W=9.8, D=4;
+  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotH=null;
+  const P=G.plot, W=13, D=9;
   if (!P.land){
-    box(W,0.06,D,'#bfa071',0,0.03,0,PG);
-    for (const [x,z] of [[-W/2,-D/2],[W/2,-D/2],[-W/2,D/2],[W/2,D/2]]) box(0.14,0.9,0.14,'#7a5a3a',x,0.45,z,PG);
-    for (const z of [-D/2,D/2]) box(W,0.05,0.05,'#d8c9a8',0,0.8,z,PG);
-    for (const x of [-W/2,W/2]) box(0.05,0.05,D,'#d8c9a8',x,0.8,0,PG);
-    smallSign('For sale',PG,0,D/2+0.1);
-    return;
+    for (const [x,z] of [[-W/2,-D/2],[W/2,-D/2],[-W/2,D/2],[W/2,D/2]]) box(0.16,1.0,0.16,'#7a5a3a',x,0.5,z,PG);
+    for (const z of [-D/2,D/2]) box(W,0.05,0.05,'#d8c9a8',0,0.85,z,PG);
+    for (const x of [-W/2,W/2]) box(0.05,0.05,D,'#d8c9a8',x,0.85,0,PG);
+    smallSign('For sale',PG,0,D/2+0.2);
+  } else if (!P.press){
+    box(W,0.1,D,'#b39368',0,0.05,0,PG);
+    for (let x=-W/2;x<=W/2;x+=0.5) box(0.48,0.45,0.4,x%1?'#d8c9a8':'#cbbb98',x,0.22,-D/2,PG);
+    for (let z=-D/2+0.5;z<D/2;z+=0.5) for (const x of [-W/2,W/2]) box(0.4,0.45,0.48,z%1?'#d8c9a8':'#cbbb98',x,0.22,z,PG);
+    smallSign('Plot 2',PG,0,D/2+0.2);
+    for (let i=0;i<8;i++) box(0.6,0.3,0.35,'#cdbd9b',-1.5+(i%4)*0.62,0.25+Math.floor(i/4)*0.3,-1,PG);
+  } else {
+    PAR=PG; plotH=buildVillage(); PAR=scene;
+    // the donkey only shows up once you buy him
+    PG.traverse(o=>{ if (o.isGroup && o.position.x===-2.9 && o.position.y===-0.6) o.visible=!!P.don; });
+    const w=makePerson({hat:'kef',moustache:true}); PG.add(w.g); w.g.position.set(2.9,0.3,0.5); w.g.rotation.y=Math.PI;
+    smallSign('Plot 2',PG,0,D/2+0.2);
   }
-  box(W,0.1,D,'#b39368',0,0.05,0,PG);
-  // a low dry-stone wall with a gap at the front for the donkeys
-  for (let x=-W/2;x<=W/2;x+=0.5){ box(0.48,0.5,0.4,x%1?'#d8c9a8':'#cbbb98',x,0.25,-D/2,PG); if (Math.abs(x+1.5)>1) box(0.48,0.5,0.4,x%1?'#cbbb98':'#e2d4b5',x,0.25,D/2,PG); }
-  for (let z=-D/2+0.5;z<D/2;z+=0.5) for (const x of [-W/2,W/2]) box(0.4,0.5,0.48,z%1?'#d8c9a8':'#cbbb98',x,0.25,z,PG);
-  if (!P.press){ smallSign('Plot 2',PG,-1.5,D/2+0.3); for (let i=0;i<5;i++) box(0.5,0.3,0.3,'#cdbd9b',-2.6+i*0.25,0.25+(i%2)*0.3,-1.2+(i%3)*0.3,PG); return; }
-  // every donkey turns its own mill stone
-  for (let i=0;i<P.don;i++) plotHooks.push(stoneMill(PG,-3+i*3,-0.1,0.5));
-  PAR=PG; jar(-4.4,1.5,0.6); jar(-4.05,1.6,0.5,'#c27a48'); PAR=scene;
-  for (let i=0;i<6;i++){ const g=new THREE.Group(); g.position.set(4.0+(i%2)*0.45,0.1+Math.floor(i/2)*0.55,1.4); PG.add(g);
-    sbox(0.42,0.52,0.42,'#c9cfd3',0,0.26,0,g); box(0.43,0.08,0.43,'#e8b934',0,0.27,0,g); g.visible=false; plotTins.push(g); }
-  if (P.press>=3) box(0.7,0.7,0.7,'#7a5636',-4.35,0.45,-1.5,PG);   // a crate store once it's bigger
+  placePlot();
 }
 function plotTick(dt){
-  const P=G.plot; if (!P.press) return;
+  if (!plotOn()) return;
   plotRun.dur=plotDur(); plotRun.t+=dt;
-  if (plotRun.t>=plotRun.dur){ plotRun.t=0; const p=plotEarn(); G.money+=p; floatAt(PX+1.5,2.6,PZ,'+'+fmt(p)+' ILS'); sfx('coin'); }
-  for (const h of plotHooks) h(plotRun,plotRun.t/plotRun.dur,dt,t);
-  const n=Math.floor(plotRun.t/plotRun.dur*7); plotTins.forEach((g,i)=>g.visible=i<n);
+  if (plotRun.t>=plotRun.dur){ plotRun.t=0; const p=plotEarn(); G.money+=p; floatAt(PX+2.9,3,PZ,'+'+fmt(p)+' ILS'); sfx('coin'); }
+  // first half the donkey crushes, second half the press squeezes
+  const half=plotRun.dur/2, inMill=plotRun.t<half;
+  if (plotH){ plotH.mill(inMill?{t:plotRun.t,dur:half}:null,inMill?plotRun.t/half:0,dt,t); plotH.press(inMill?null:{t:plotRun.t-half,dur:half},inMill?0:(plotRun.t-half)/half,dt,t); }
 }
 
 // ---------- save / offline ----------
@@ -1107,17 +1117,13 @@ function rowSpecs(k){
     return d.goals.map(g=>{ const have=Math.min(g.n,d[g.k]), ok=have>=g.n;
       return {name:GOALS[g.k](g.n), val:g.k==='earned'?`${fmt(have)} / ${fmt(g.n)}`:`${have} / ${g.n}`, pips:pips(Math.floor(have/g.n*10),10), wk:`Reward: ${fmt(rw)} ILS`,
         btns:[g.done?{txt:'Claimed ✓',cls:'btn',off:true,cost:0}:ok?{txt:`Claim ${fmt(rw)} ILS`,cls:'btn hire',cost:0,act(){ g.done=true; G.money+=rw; sfx('coin'); sfx('up'); }}:{txt:'Not yet',cls:'btn',off:true,cost:0}]}; }); }
-  if (k==='plot'){ const P=G.plot, out=[];
-    if (!P.land){ const c=plotCost(3000); return [{name:'Land next door', val:'Room for a second stone press', pips:'', wk:'Your second press runs by itself, no worker needed.',
-      btns:[{txt:`Buy the land · ${fmt(c)} ILS`,cls:'btn exp',cost:c,act(){ P.land=1; buildPlot(); floatAt(PX,2.4,PZ,'Land bought!','w'); sfx('build'); }}]}]; }
-    if (!P.press){ const c=plotCost(2500); return [{name:'Second press', val:'A stone mill turned by a donkey', pips:'', wk:'It crushes, presses and sells by itself.',
-      btns:[{txt:`Build the press · ${fmt(c)} ILS`,cls:'btn hire',cost:c,act(){ P.press=1; plotRun.t=0; buildPlot(); floatAt(PX,2.4,PZ,'Press built!','w'); sfx('build'); }}]}]; }
-    const dur=plotDur(), nd=P.press<MAX?PT[P.press]*(1-0.15*(P.don-1)):0;
-    out.push({name:'Stone press', val:`${fmt(plotEarn())} ILS every ${dur.toFixed(1)} s${nd?' → '+nd.toFixed(1)+' s':''}`, pips:pips(P.press), wk:'Sells at your shop price, even while you play.',
-      btns:[P.press>=MAX?{txt:'Press maxed',cls:'btn',off:true,cost:0}:{txt:`Upgrade · ${fmt(plotCost(P_UP[P.press-1]))} ILS`,cls:'btn',cost:plotCost(P_UP[P.press-1]),act(){ P.press++; buildPlot(); floatAt(PX,2.4,PZ,'Upgraded!','w'); sfx('up'); }}]});
-    out.push({name:'Donkeys', val:`${P.don} of 3 · each brings its own mill stone, 15% faster`, pips:pips(P.don,3), wk:'',
-      btns:[P.don>=3?{txt:'All donkeys bought',cls:'btn',off:true,cost:0}:{txt:`Buy a donkey · ${fmt(plotCost(P_DON[P.don-1]))} ILS`,cls:'btn hire',cost:plotCost(P_DON[P.don-1]),act(){ P.don++; buildPlot(); floatAt(PX,2.4,PZ,'New donkey!','w'); sfx('up'); }}]});
-    return out; }
+  if (k==='plot'){ const P=G.plot, one=(name,val,wk,txt,cls,cost,act)=>[{name,val,pips:'',wk,btns:[{txt:`${txt} · ${fmt(cost)} ILS`,cls,cost,act}]}];
+    if (!P.land) return one('Land next door','Room for a second press house','It works on its own and sells at your shop price.','Buy the land','btn exp',plotCost(3000),()=>{ P.land=1; buildPlot(); floatAt(PX,2.4,PZ,'Land bought!','w'); sfx('build'); });
+    if (!P.press) return one('Second press house','A stone mill and a screw press, with a worker','The mill needs a donkey to turn it.','Build it','btn hire',plotCost(2500),()=>{ P.press=1; buildPlot(); floatAt(PX,2.4,PZ,'Press house built!','w'); sfx('build'); });
+    if (!P.don) return one('Donkey','Turns the mill stone','Once he is here, Plot 2 starts making oil.','Buy a donkey','btn hire',plotCost(1500),()=>{ P.don=1; plotRun.t=0; buildPlot(); floatAt(PX,2.4,PZ,'Donkey bought!','w'); sfx('up'); });
+    const nd=P.press<MAX?PT[P.press]:0, uc=P.press<MAX?plotCost(P_UP[P.press-1]):0;
+    return [{name:'Plot 2 press', val:`${fmt(plotEarn())} ILS every ${plotDur()} s${nd?' → '+nd+' s':''}`, pips:pips(P.press), wk:'Works by itself, even while the app is closed.',
+      btns:[P.press>=MAX?{txt:'Press maxed',cls:'btn',off:true,cost:0}:{txt:`Upgrade · ${fmt(uc)} ILS`,cls:'btn',cost:uc,act(){ P.press++; floatAt(PX,2.4,PZ,'Upgraded!','w'); sfx('up'); }}]}]; }
   const s=G.st[k], c=cm(), nm=L().names[k], out=[];
   const card=(name,l,w,setL,setW,spot)=>{
     const btns=[], mc=BASE[k].mCost[l-1]*c;
@@ -1168,7 +1174,7 @@ function ui(){
   $('cTins').textContent=`${L().unit==='tin'?'Tins':'Cases'} ${units(tinStock)}`;
   const l=$('cLost'); if (G.lost!==lostSeen){ lostSeen=G.lost; lostAt=t; } l.textContent=`Lost ${G.lost}`; l.className='chip'+(G.lost&&t-lostAt<30?' bad':'');
   for (const k in ups) ups[k].classList.toggle('ready',affordable(k));
-  ups.plot.firstChild.textContent=G.plot.land?'⬆ Plot 2':'Land for sale'; ups.plot.lastChild.style.display=G.plot.press?'':'none';
+  ups.plot.firstChild.textContent=(plotOff?'':'⬆ ')+(G.plot.land?'Plot 2':'Land for sale')+(plotOff?' →':''); ups.plot.lastChild.style.display=plotOn()?'':'none';
   if (G.money>=L().move && G.lvNote!==G.lvl && !(L().final&&G.won)){ G.lvNote=G.lvl; const e=$('lvPop'); e.textContent=L().final?'Final goal ready! Tap to finish':`Level ${G.lvl+2} unlocked! Tap to move up`; e.hidden=false; clearTimeout(e.t); e.t=setTimeout(()=>e.hidden=true,9000); sfx('up'); }
   $('miniBar').style.width=Math.min(100,G.money/L().move*100)+'%';
   $('mvLabel').textContent=L().final?(G.won?'New season':'Goal'):`Level ${G.lvl+2}`;
@@ -1205,7 +1211,7 @@ if (saved){ G={...fresh(),...saved}; delete G.savedAt; delete G.live;
   if (!Array.isArray(G.slots)) G.slots=[]; G.bays=G.bays||0;
   // older saves put presses in slot 0; mills now go on the left (same-type order is unchanged, so levels stay matched)
   for (let b=0;b<G.bays;b++) if (G.slots[2*b]==='press' && G.slots[2*b+1]==='mill'){ G.slots[2*b]='mill'; G.slots[2*b+1]='press'; } }
-G.plot={...freshPlot(),...(G.plot||{})}; buildPlot();
+G.plot={...freshPlot(),...(G.plot||{})}; if (G.plot.don>1) G.plot.don=1; buildPlot();
 setupLevel();
 if (saved && saved.live){ const v=saved.live; sacks=Math.min(v.sacks||0,pileCap()); pasteReady=Math.min(v.paste||0,pasteCap()); tinStock=Math.min(v.tins||0,STOCK);
   for (let i=0;i<Math.min(v.q||0,QMAX);i++){ spawnFarmer(); const f=queue[queue.length-1]; if (f){ const [x,z]=qSlot(i); f.g.position.set(x,0,z); } }
@@ -1224,9 +1230,11 @@ function frame(now){
   if (!paused) update(dt);
   if (ptrs.size===0 && (Math.abs(vel.x)+Math.abs(vel.z))>0.05){ cam.tx+=vel.x*dt; cam.tz+=vel.z*dt; const k=Math.pow(0.02,dt); vel.x*=k; vel.z*=k; applyCam(); }
   for (const k of ['mill','press']) tags[k].forEach((el,i)=>{ const r=runs[k][i]; place(el,...mpos[k][i]); el.lastChild.firstChild.style.width=(r?r.t/r.dur*100:0)+'%'; });
-  if (G.plot.press) ups.plot.lastChild.firstChild.style.width=plotRun.t/plotRun.dur*100+'%';
+  if (plotOn()) ups.plot.lastChild.firstChild.style.width=plotRun.t/plotRun.dur*100+'%';
   for (const c of customers) if (c.tag) place(c.tag,c.g.position.x,2.9,c.g.position.z);
   for (const k in ups){ const e=ups[k]; place(e,...UPS[k].p); if (UPS[k].dy) e.style.transform+=` translateY(-${UPS[k].dy}px)`; }
+  { const e=ups.plot, [sx,sy,sz]=scr(UPS.plot.p); const off=sz<1 && sx>SR.width-10; if (off!==plotOff){ plotOff=off; ui(); }
+    if (off){ e.style.transform=`translate(${SR.width-e.offsetWidth-10}px,${SR.height*0.62}px) translate(0,-100%)`; e.style.visibility='visible'; } }
   if (sel) placeSheet();
   for (const k in taps){ const show=(MACH(k)||!G.st[k].w) && canDo(k); taps[k].style.display=show?'':'none'; if (show) place(taps[k],...tapPos[k]()); }
   for (let i=floats.length-1;i>=0;i--){ const f=floats[i]; f.life-=dt; f.p.y+=dt*0.9; place(f.el,f.p.x,f.p.y,f.p.z); f.el.style.opacity=Math.min(1,f.life); if (f.life<=0){ f.el.remove(); floats.splice(i,1); } }
