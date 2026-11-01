@@ -696,6 +696,8 @@ const MILL_T=[12,10.5,9,7.5,6.5], PRESS_T=[14,12,10,8.5,7], W_DELAY=[3,2.2,1.5,1
 const FLOOR=[2.2,1.6,1.25,0.95,0.8];
 const L=()=>LEVELS[G.lvl];
 const MACH=k=>k==='mill'||k==='press';
+// each new season adds one more machine of each kind to every level (up to +2)
+const maxU=()=>L().maxU+Math.min(2,G.season||0);
 const N=k=>G.st[k].u.length;
 // every new season keeps a permanent +25% on the oil price
 const seasonMul=()=>1+0.25*(G.season||0);
@@ -724,7 +726,7 @@ const mDesc=(k,l)=>{ const b=L().batch;
   return `${Math.round((L().price[0]+(l-1)*L().price[1])*seasonMul())} ILS per ${L().unit}`; };
 
 const freshSt=()=>({intake:{m:1,w:0},mill:{u:[1],w:[0]},press:{u:[1],w:[0]},shop:{m:1,w:0}});
-const fresh=()=>({lvl:0,money:500,lvlMoney:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt(),season:0,plot:{land:0,press:0,don:0}});
+const fresh=()=>({lvl:0,money:500,lvlMoney:500,lt:0,lost:0,won:false,bays:0,slots:[],st:freshSt(),season:0,plot:{land:0,press:0,don:0,extra:[]}});
 let G=fresh();
 const workers={}, cool={};
 let sacks=0, pasteReady=0, tinStock=0, intakeBusy=0, t=0;
@@ -963,7 +965,7 @@ const goalReward=()=>Math.round(L().move*0.06/50)*50;
 // seconds between farmers your setup can handle: the slowest of intake, mills, presses and shop
 function capGap(maxed){
   const lv=L(), mw=MAX;
-  const tp=(k,T)=>{ const n=maxed?lv.maxU:N(k); let a=0;
+  const tp=(k,T)=>{ const n=maxed?maxU():N(k); let a=0;
     for (let i=0;i<n;i++){ const l=maxed?MAX:G.st[k].u[i], w=maxed?mw:G.st[k].w[i]; a+=1/(T[l-1]*(w?1-0.06*(w-1):1)+(w?W_DELAY[w-1]:0)); } return a; };   // the worker reloads after each batch
   const q=k=>{ const w=maxed?mw:G.st[k].w; return w?Math.max(Q_DELAY[w-1],0.55):0.8; };   // 0.55 s for the next person to step up
   return Math.max(1/tp('mill',MILL_T), 1/tp('press',PRESS_T), q('intake'), q('shop'));
@@ -971,7 +973,7 @@ function capGap(maxed){
 // demand follows YOUR setup: always a bit more than you can handle, so there's a line and a few losses,
 // easing as you upgrade (+45% fresh -> +8% nearly done); a fully maxed level keeps a line but loses no one
 function progress(){
-  const lv=L(); let got=0, all=18+18*lv.maxU;
+  const lv=L(); let got=0, all=18+18*maxU();
   for (const k of ['intake','shop']) got+=G.st[k].m-1+G.st[k].w;
   for (const k of ['mill','press']) G.st[k].u.forEach((u,i)=>got+=u-1+G.st[k].w[i]);
   return Math.min(1,got/all);
@@ -1032,16 +1034,18 @@ function update(dt){
 }
 
 // ---------- second plot: land next door with a whole second village press house, runs by itself ----------
-// it always stands to the right of the last right-hand extension, so the two never overlap
-const PT=[30,26,22,18,15], P_UP=[1500,3000,5500,9000];
+// it always stands to the right of the last right-hand extension, so the two never overlap.
+// It grows like the main press: each extension adds a line (a donkey mill + a screw press) with its own upgrades.
+const PT=[30,26,22,18,15], P_UP=[1500,3000,5500,9000], P_LINES=4, P_BW=11.5;
 let PX=16; const PZ=0;
-const freshPlot=()=>({land:0,press:0,don:0});
+const freshPlot=()=>({land:0,press:0,don:0,extra:[]});
 const plotCost=n=>Math.round(n*cm()/50)*50;
-const plotDur=()=>PT[G.plot.press-1];
+const plotLines=()=>G.plot.press?[G.plot.press,...G.plot.extra]:[];
+const lineCost=()=>plotCost(6000*Math.pow(1.6,G.plot.extra.length));
 const plotEarn=()=>price()*L().batch;
 const plotOn=()=>G.plot.press&&G.plot.don;
-const plotRate=()=>plotOn()?plotEarn()/plotDur():0;
-let PG=null, plotH=null, plotOff=false; const plotRun={t:0,dur:30};
+const plotRate=()=>plotOn()?plotLines().reduce((a,l)=>a+plotEarn()/PT[l-1],0):0;
+let PG=null, plotH=[], plotOff=false; const plotRuns=[];
 function smallSign(text,parent,x,z){
   const c=document.createElement('canvas'); c.width=256; c.height=96; const x2=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
   const paint=()=>{ x2.fillStyle='#f3e6c4'; x2.fillRect(0,0,256,96); x2.fillStyle='#a8452f'; x2.font='44px "Lilita One", sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(text,128,52); tex.needsUpdate=true; };
@@ -1050,12 +1054,23 @@ function smallSign(text,parent,x,z){
   const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.6),new THREE.MeshBasicMaterial({map:tex,toneMapped:false})); pl.position.set(x,1.35,z); parent.add(pl);
 }
 function placePlot(){
-  const lv=L(); PX=lv.hw+lv.bw*Math.ceil(G.bays/2)+3+6.5;
-  if (PG) PG.position.x=PX; UPS.plot.p[0]=PX; plotHit.position.x=PX; BOUND.x1=Math.max(34,PX+4);
+  const lv=L(), n=Math.max(0,plotLines().length-1); PX=lv.hw+lv.bw*Math.ceil(G.bays/2)+3+6.5;
+  if (PG) PG.position.x=PX; UPS.plot.p[0]=PX;
+  plotHit.scale.x=(13+n*P_BW)/13; plotHit.position.x=PX+n*P_BW/2; BOUND.x1=Math.max(34,PX+6.5+n*P_BW+2);
+}
+// one extension of the village press: same floor, back wall and beams, with its own donkey mill and screw press
+function plotBay(i,last){
+  const g=new THREE.Group(); g.position.set(6.5+P_BW*(i+0.5),0,0); PG.add(g);
+  box(P_BW,0.3,7.6,'#b9a98a',0,0.15,-0.6,g); box(P_BW,2.4,0.5,'#d6c7a6',0,1.5,-4.15,g);
+  const ox=P_BW/2-0.13; for (const zz of [-3.9,3.0]) box(0.25,3.5,0.25,'#7a5a3a',ox,2.05,zz,g);
+  box(0.2,0.2,7.2,'#7a5a3a',ox,3.8,-0.45,g); for (const zz of [-3.9,-1.4,1.1]) box(P_BW,0.15,0.15,'#7a5a3a',0,3.92,zz,g);
+  if (last) box(0.3,0.9,7.2,'#d6c7a6',ox,0.75,-0.6,g);
+  const w=makePerson({hat:pick(['kef','cap'])}); g.add(w.g); w.g.position.set(2.8,0.3,0.4); w.g.rotation.y=Math.PI;
+  return {mill:stoneMill(g,-2.6,-1.0), press:screwPress(g,2.8,-1.5)};
 }
 function buildPlot(){
   if (PG) scene.remove(PG);
-  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotH=null;
+  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotH=[];
   const P=G.plot, W=13, D=9;
   if (!P.land){
     for (const [x,z] of [[-W/2,-D/2],[W/2,-D/2],[-W/2,D/2],[W/2,D/2]]) box(0.16,1.0,0.16,'#7a5a3a',x,0.5,z,PG);
@@ -1069,21 +1084,24 @@ function buildPlot(){
     smallSign('Plot 2',PG,0,D/2+0.2);
     for (let i=0;i<8;i++) box(0.6,0.3,0.35,'#cdbd9b',-1.5+(i%4)*0.62,0.25+Math.floor(i/4)*0.3,-1,PG);
   } else {
-    PAR=PG; plotH=buildVillage(); PAR=scene;
-    // the donkey only shows up once you buy him
+    PAR=PG; plotH.push(buildVillage()); PAR=scene;
+    // the first donkey only shows up once you buy him
     PG.traverse(o=>{ if (o.isGroup && o.position.x===-2.9 && o.position.y===-0.6) o.visible=!!P.don; });
     const w=makePerson({hat:'kef',moustache:true}); PG.add(w.g); w.g.position.set(2.9,0.3,0.5); w.g.rotation.y=Math.PI;
     smallSign('Plot 2',PG,0,D/2+0.2);
+    P.extra.forEach((_,i)=>plotH.push(plotBay(i,i===P.extra.length-1)));
   }
+  while (plotRuns.length<plotH.length) plotRuns.push({t:Math.random()*10,dur:30});
   placePlot();
 }
 function plotTick(dt){
   if (!plotOn()) return;
-  plotRun.dur=plotDur(); plotRun.t+=dt;
-  if (plotRun.t>=plotRun.dur){ plotRun.t=0; const p=plotEarn(); G.money+=p; floatAt(PX+2.9,3,PZ,'+'+fmt(p)+' ILS'); sfx('coin'); }
-  // first half the donkey crushes, second half the press squeezes
-  const half=plotRun.dur/2, inMill=plotRun.t<half;
-  if (plotH){ plotH.mill(inMill?{t:plotRun.t,dur:half}:null,inMill?plotRun.t/half:0,dt,t); plotH.press(inMill?null:{t:plotRun.t-half,dur:half},inMill?0:(plotRun.t-half)/half,dt,t); }
+  plotLines().forEach((l,i)=>{ const r=plotRuns[i], h=plotH[i]; if (!r||!h) return;
+    r.dur=PT[l-1]; r.t+=dt;
+    if (r.t>=r.dur){ r.t=0; const p=plotEarn(); G.money+=p; floatAt(PX+(i?6.5+P_BW*(i-0.5)+2.8:2.9),3,PZ,'+'+fmt(p)+' ILS'); sfx('coin'); }
+    // first half the donkey crushes, second half the press squeezes
+    const half=r.dur/2, inMill=r.t<half;
+    h.mill(inMill?{t:r.t,dur:half}:null,inMill?r.t/half:0,dt,t); h.press(inMill?null:{t:r.t-half,dur:half},inMill?0:(r.t-half)/half,dt,t); });
 }
 
 // ---------- save / offline ----------
@@ -1120,10 +1138,15 @@ function rowSpecs(k){
   if (k==='plot'){ const P=G.plot, one=(name,val,wk,txt,cls,cost,act)=>[{name,val,pips:'',wk,btns:[{txt:`${txt} · ${fmt(cost)} ILS`,cls,cost,act}]}];
     if (!P.land) return one('Land next door','Room for a second press house','It works on its own and sells at your shop price.','Buy the land','btn exp',plotCost(3000),()=>{ P.land=1; buildPlot(); floatAt(PX,2.4,PZ,'Land bought!','w'); sfx('build'); });
     if (!P.press) return one('Second press house','A stone mill and a screw press, with a worker','The mill needs a donkey to turn it.','Build it','btn hire',plotCost(2500),()=>{ P.press=1; buildPlot(); floatAt(PX,2.4,PZ,'Press house built!','w'); sfx('build'); });
-    if (!P.don) return one('Donkey','Turns the mill stone','Once he is here, Plot 2 starts making oil.','Buy a donkey','btn hire',plotCost(1500),()=>{ P.don=1; plotRun.t=0; buildPlot(); floatAt(PX,2.4,PZ,'Donkey bought!','w'); sfx('up'); });
-    const nd=P.press<MAX?PT[P.press]:0, uc=P.press<MAX?plotCost(P_UP[P.press-1]):0;
-    return [{name:'Plot 2 press', val:`${fmt(plotEarn())} ILS every ${plotDur()} s${nd?' → '+nd+' s':''}`, pips:pips(P.press), wk:'Works by itself, even while the app is closed.',
-      btns:[P.press>=MAX?{txt:'Press maxed',cls:'btn',off:true,cost:0}:{txt:`Upgrade · ${fmt(uc)} ILS`,cls:'btn',cost:uc,act(){ P.press++; floatAt(PX,2.4,PZ,'Upgraded!','w'); sfx('up'); }}]}]; }
+    if (!P.don) return one('Donkey','Turns the mill stone','Once he is here, Plot 2 starts making oil.','Buy a donkey','btn hire',plotCost(1500),()=>{ P.don=1; plotRuns.length=0; buildPlot(); floatAt(PX,2.4,PZ,'Donkey bought!','w'); sfx('up'); });
+    const lines=plotLines(), out=[], n=lines.length, room=n<P_LINES;
+    const r={name:'Press lines', val:`${n} of ${P_LINES}`, pips:pips(n,P_LINES), wk:'Each extension adds a donkey mill and a screw press.'};
+    r.btns=[room?{txt:`Build extension · ${fmt(lineCost())} ILS`,cls:'btn exp',cost:lineCost(),act(){ P.extra.push(1); buildPlot(); floatAt(PX+6.5+P_BW*(n-0.5),3.5,PZ,'Extension built!','w'); sfx('build'); }}:{txt:'All lines built',cls:'btn',off:true,cost:0}];
+    out.push(r);
+    lines.forEach((l,i)=>{ const uc=l<MAX?plotCost(P_UP[l-1]*(1+0.5*i)):0;
+      out.push({name:`Line ${i+1}`, val:`${fmt(plotEarn())} ILS every ${PT[l-1]} s${l<MAX?' → '+PT[l]+' s':''}`, pips:pips(l), wk:i?'':'Works by itself, even while the app is closed.',
+        btns:[l>=MAX?{txt:'Line maxed',cls:'btn',off:true,cost:0}:{txt:`Upgrade · ${fmt(uc)} ILS`,cls:'btn',cost:uc,act(){ if (i) P.extra[i-1]++; else P.press++; floatAt(PX+(i?6.5+P_BW*(i-0.5):0),3,PZ,'Upgraded!','w'); sfx('up'); }}]}); });
+    return out; }
   const s=G.st[k], c=cm(), nm=L().names[k], out=[];
   const card=(name,l,w,setL,setW,spot)=>{
     const btns=[], mc=BASE[k].mCost[l-1]*c;
@@ -1137,7 +1160,7 @@ function rowSpecs(k){
   };
   if (!MACH(k)) card(nm[1],s.m,s.w,v=>s.m=v,v=>{ s.w=v; if (v===1) spawnWorker(k); },()=>BASE[k].wPos);
   else {
-    const n=N(k), max=L().maxU, room=roomFree(), r={name:'Machines', val:`${n} of ${max} · ${room>0?room+' free space'+(room>1?'s':''):'no free space'}`, pips:pips(n,max), wk:'Each new machine starts at Lv 1 and needs its own worker.'};
+    const n=N(k), max=maxU(), room=roomFree(), r={name:'Machines', val:`${n} of ${max} · ${room>0?room+' free space'+(room>1?'s':''):'no free space'}`, pips:pips(n,max), wk:'Each new machine starts at Lv 1 and needs its own worker.'};
     if (n>=max) r.btns=[{txt:'All machines for this level',cls:'btn',off:true,cost:0}];
     else if (room<=0){ const cost=bayCost(); r.btns=[{txt:`Build extension (2 spaces) · ${fmt(cost)} ILS`,cls:'btn exp',cost,
       act(){ G.bays++; buildExtras(); const [x]=slotPos((G.bays-1)*2); floatAt(x,3.5,0,'Extension built!','w'); sfx('build'); }}]; }
@@ -1211,7 +1234,7 @@ if (saved){ G={...fresh(),...saved}; delete G.savedAt; delete G.live;
   if (!Array.isArray(G.slots)) G.slots=[]; G.bays=G.bays||0;
   // older saves put presses in slot 0; mills now go on the left (same-type order is unchanged, so levels stay matched)
   for (let b=0;b<G.bays;b++) if (G.slots[2*b]==='press' && G.slots[2*b+1]==='mill'){ G.slots[2*b]='mill'; G.slots[2*b+1]='press'; } }
-G.plot={...freshPlot(),...(G.plot||{})}; if (G.plot.don>1) G.plot.don=1; buildPlot();
+G.plot={...freshPlot(),...(G.plot||{})}; if (G.plot.don>1) G.plot.don=1; if (!Array.isArray(G.plot.extra)) G.plot.extra=[]; buildPlot();
 setupLevel();
 if (saved && saved.live){ const v=saved.live; sacks=Math.min(v.sacks||0,pileCap()); pasteReady=Math.min(v.paste||0,pasteCap()); tinStock=Math.min(v.tins||0,STOCK);
   for (let i=0;i<Math.min(v.q||0,QMAX);i++){ spawnFarmer(); const f=queue[queue.length-1]; if (f){ const [x,z]=qSlot(i); f.g.position.set(x,0,z); } }
@@ -1230,7 +1253,7 @@ function frame(now){
   if (!paused) update(dt);
   if (ptrs.size===0 && (Math.abs(vel.x)+Math.abs(vel.z))>0.05){ cam.tx+=vel.x*dt; cam.tz+=vel.z*dt; const k=Math.pow(0.02,dt); vel.x*=k; vel.z*=k; applyCam(); }
   for (const k of ['mill','press']) tags[k].forEach((el,i)=>{ const r=runs[k][i]; place(el,...mpos[k][i]); el.lastChild.firstChild.style.width=(r?r.t/r.dur*100:0)+'%'; });
-  if (plotOn()) ups.plot.lastChild.firstChild.style.width=plotRun.t/plotRun.dur*100+'%';
+  if (plotOn() && plotRuns[0]) ups.plot.lastChild.firstChild.style.width=plotRuns[0].t/plotRuns[0].dur*100+'%';
   for (const c of customers) if (c.tag) place(c.tag,c.g.position.x,2.9,c.g.position.z);
   for (const k in ups){ const e=ups[k]; place(e,...UPS[k].p); if (UPS[k].dy) e.style.transform+=` translateY(-${UPS[k].dy}px)`; }
   { const e=ups.plot, [sx,sy,sz]=scr(UPS.plot.p); const off=sz<1 && sx>SR.width-10; if (off!==plotOff){ plotOff=off; ui(); }
