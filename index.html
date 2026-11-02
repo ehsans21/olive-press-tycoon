@@ -620,7 +620,10 @@ const CHAR={src:{}};
 function loadChars(){
   if (!THREE.GLTFLoader || !THREE.SkeletonUtils) return Promise.resolve();
   const ld=new THREE.GLTFLoader();
-  const all=[...CHAR_M,...CHAR_F,CHAR_VIP].map(n=>new Promise(res=>ld.load('chars/character-'+n+'.glb',g=>{ CHAR.src[n]=g; res(); },undefined,()=>res())));
+  // next to the page in the app; the web preview can't host .glb files, so it falls back to the repo on jsDelivr
+  const CDN='https://cdn.jsdelivr.net/gh/ehsans21/olive-press-tycoon@73a2cf6/chars/';
+  const get=(n,base,next)=>ld.load(base+'character-'+n+'.glb',g=>{ CHAR.src[n]=g; next(true); },undefined,()=>next(false));
+  const all=[...CHAR_M,...CHAR_F,CHAR_VIP].map(n=>new Promise(res=>get(n,'chars/',ok=>ok?res():get(n,CDN,res))));
   return Promise.race([Promise.all(all),new Promise(res=>setTimeout(res,9000))]);
 }
 // split clips so the legs can walk while the arms carry something
