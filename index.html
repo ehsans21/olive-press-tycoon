@@ -171,6 +171,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 </div>
 
 <script src="three.min.js"></script>
+<script src="GLTFLoader.js"></script>
+<script src="SkeletonUtils.js"></script>
 <script>
 (() => {
 const $=id=>document.getElementById(id);
@@ -234,22 +236,33 @@ const STEEL='#cfd6da', BLUE='#2f6fa3';
   g.setAttribute('color',new THREE.Float32BufferAttribute(arr,3));
   const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true})); m.receiveShadow=true; scene.add(m); }
 for (const [w,h,x,z] of [[44,3,-16,5.6],[26,2.6,16,4.8]]){ const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),flat('#bea477')); p.rotation.x=-Math.PI/2; p.position.set(x,0.012,z); p.receiveShadow=true; scene.add(p); }
-// distant hills
-for (let i=0;i<18;i++){ const a=i/18*Math.PI*2+rnd()*0.2, r=85+rnd()*25; const h=blob(18+rnd()*14,i%2?'#a9b18c':'#b8ad84',Math.cos(a)*r,-4,Math.sin(a)*r,scene,1); h.scale.y=0.35+rnd()*0.2; h.castShadow=false; }
+// distant hills: two rings, the far one bluer in the haze
+for (let i=0;i<18;i++){ const a=i/18*Math.PI*2+rnd()*0.2, r=85+rnd()*25; const h=blob(18+rnd()*14,['#9aa66f','#a99f6c','#8f9d68'][i%3],Math.cos(a)*r,-4,Math.sin(a)*r,scene,1); h.scale.y=0.4+rnd()*0.25; h.castShadow=false; }
+for (let i=0;i<14;i++){ const a=i/14*Math.PI*2+0.1, r=135+rnd()*20; const h=blob(30+rnd()*14,'#9fae9c',Math.cos(a)*r,-6,Math.sin(a)*r,scene,1); h.scale.y=0.45+rnd()*0.2; h.castShadow=false; }
+// olive groves and cypresses dotted over the slopes around the press
+{ const n=260, om=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:'#fff',roughness:.9,flatShading:true}),n);
+  const OC=['#6f8a52','#7d9660','#5f7a47'].map(c=>new THREE.Color(c));
+  for (let i=0;i<n;i++){ const a=rnd()*Math.PI*2, r=46+rnd()*40; dm.position.set(Math.cos(a)*r,0.6+(r-46)*0.12,Math.sin(a)*r); dm.rotation.set(0,rnd()*6,0); const sc=1.1+rnd()*0.8; dm.scale.set(sc,sc*0.75,sc); dm.updateMatrix(); om.setMatrixAt(i,dm.matrix); om.setColorAt(i,OC[i%3]); }
+  scene.add(om);
+  const cy=new THREE.InstancedMesh(new THREE.ConeGeometry(0.7,5,6),new THREE.MeshStandardMaterial({color:'#3f5a36',roughness:.9,flatShading:true}),40);
+  for (let i=0;i<40;i++){ const a=rnd()*Math.PI*2, r=38+rnd()*30; dm.position.set(Math.cos(a)*r,2.4+(r-38)*0.08,Math.sin(a)*r); dm.rotation.set(0,0,0); dm.scale.setScalar(0.8+rnd()*0.5); dm.updateMatrix(); cy.setMatrixAt(i,dm.matrix); }
+  cy.castShadow=true; scene.add(cy); }
+// the old village on the hill behind the press: limestone houses, a dome and a minaret
+{ const vg=new THREE.Group(); vg.position.set(-18,7,-92); scene.add(vg); const ST=['#efe4cc','#e6d8b8','#f3ead6','#dccdab'];
+  const nb=(mesh)=>{ mesh.castShadow=false; return mesh; };
+  for (let i=0;i<34;i++){ const w=3+rnd()*3, h=2.5+rnd()*3, d=3+rnd()*3, x=(rnd()-.5)*46, z=(rnd()-.5)*14, y=h/2-Math.abs(x)*0.08;
+    nb(box(w,h,d,ST[i%4],x,y,z,vg)); if (rnd()<0.25) nb(box(w*0.3,0.4,d*0.3,'#b8a888',x,y+h/2+0.2,z,vg)); }
+  nb(box(5.6,6.5,5.6,'#efe4cc',6,3.25,2,vg)); nb(add(new THREE.SphereGeometry(2.6,16,10,0,Math.PI*2,0,Math.PI/2),flat('#c9b98f'),6,6.5,2,vg));
+  nb(cyl(0.8,0.95,13,'#f1e7d1',-7,6.5,3,vg,10)); nb(cyl(1.2,1.2,0.5,'#d8c9a6',-7,11.5,3,vg,10)); nb(add(new THREE.ConeGeometry(0.9,2.2,10),flat('#9a8a64'),-7,14.1,3,vg));
+  for (let i=0;i<10;i++) nb(add(new THREE.ConeGeometry(0.6,4,6),flat('#3f5a36'),(rnd()-.5)*50,1.5,8+rnd()*3,vg));
+  const base=nb(blob(30,'#a39a68',0,-12,0,vg,1)); base.scale.set(1.3,0.55,0.5); }
 // stones + dry grass
 { const sm=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),flat('#dacbad'),120);
   for(let i=0;i<120;i++){ const a=rnd()*Math.PI*2, r=9+rnd()*34; dm.position.set(Math.cos(a)*r,0.04,Math.sin(a)*r); dm.rotation.set(rnd(),rnd()*6,rnd()); const s=0.12+rnd()*0.25; dm.scale.set(s,s*0.5,s); dm.updateMatrix(); sm.setMatrixAt(i,dm.matrix); }
-  sm.receiveShadow=true; scene.add(sm);
   const tm=new THREE.InstancedMesh(new THREE.ConeGeometry(0.12,0.45,4),new THREE.MeshStandardMaterial({color:'#fff',roughness:1,flatShading:true}),320);
   const TC=['#b9a15f','#a8a15a','#c4ab6a','#8f9a5a'].map(c=>new THREE.Color(c));
   for(let i=0;i<320;i++){ const a=rnd()*Math.PI*2, r=8+rnd()*36; dm.position.set(Math.cos(a)*r,0.2,Math.sin(a)*r); dm.rotation.set((rnd()-.5)*.5,rnd()*6,(rnd()-.5)*.5); dm.scale.setScalar(0.7+rnd()*0.9); dm.updateMatrix(); tm.setMatrixAt(i,dm.matrix); tm.setColorAt(i,TC[i%4]); }
   scene.add(tm); }
-// dry-stone terraces in the grove
-{ const st=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:'#fff',roughness:.95,flatShading:true}),520); let n=0;
-  const SC=['#d8c9a8','#cbbb98','#e2d4b5','#bfae8c'].map(c=>new THREE.Color(c));
-  for (const [cx,cz,r,a0,a1] of [[0,0,17,3.6,5.9],[0,0,22,0.2,2.6],[0,0,27,3.3,6.1],[0,0,25,0.4,1.2]]){
-    for (let a=a0;a<a1&&n<520;a+=0.045){ for (let row=0;row<2&&n<520;row++){ dm.position.set(cx+Math.cos(a)*r,0.18+row*0.3,cz+Math.sin(a)*r); dm.rotation.set(0,-a+rnd()*0.2,0); dm.scale.set(0.35,0.28,0.75+rnd()*0.3); dm.updateMatrix(); st.setMatrixAt(n,dm.matrix); st.setColorAt(n,SC[n%4]); n++; } } }
-  st.count=n; st.castShadow=true; st.receiveShadow=true; scene.add(st); }
 
 // olive trees: gnarled split trunks, silver-green leaf clusters
 const leafList=[], oliveList=[];
@@ -600,7 +613,80 @@ function buildCommon(L){
 const SKINS=['#c9976f','#b5815a','#d8a882','#9c6b48'];
 const SHIRTS=['#5b7fa6','#a85b4a','#6e8a4f','#8a6aa0','#c28a3a','#3e5a7a','#7d6a55'];
 const SCARVES=['#3e5a7a','#7a3a4a','#2f5a4a','#6a4a7a','#c9b48a'];
+// ---------- villagers: Kenney "Mini Characters" (CC0) with their own walk / idle / carry / work animations ----------
+// Loaded before the game starts; if they can't load, the simple built-in people are used instead.
+const CHAR_M=['male-a','male-b','male-e','male-f'], CHAR_F=['female-a','female-b','female-c','female-d','female-f'], CHAR_VIP='male-d';
+const CHAR={src:{}};
+function loadChars(){
+  if (!THREE.GLTFLoader || !THREE.SkeletonUtils) return Promise.resolve();
+  const ld=new THREE.GLTFLoader();
+  const all=[...CHAR_M,...CHAR_F,CHAR_VIP].map(n=>new Promise(res=>ld.load('chars/character-'+n+'.glb',g=>{ CHAR.src[n]=g; res(); },undefined,()=>res())));
+  return Promise.race([Promise.all(all),new Promise(res=>setTimeout(res,9000))]);
+}
+// split clips so the legs can walk while the arms carry something
+function charClips(g){
+  if (g.userData.clips) return g.userData.clips;
+  const A=n=>g.animations.find(a=>a.name===n), isArm=tr=>/arm-/.test(tr.name);
+  const part=(c,arms,name)=>new THREE.AnimationClip(name,c.duration,c.tracks.filter(tr=>isArm(tr)===arms));
+  return g.userData.clips={idle:A('idle'),walk:A('walk'),walkB:part(A('walk'),false,'walkB'),idleB:part(A('idle'),false,'idleB'),
+    hold:part(A('holding-both'),true,'hold'),holdR:part(A('holding-right'),true,'holdR'),work:A('interact-right')};
+}
+const KEF=(()=>{ const mk=(ink)=>{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle='#f4f1e8'; x.fillRect(0,0,64,64); x.fillStyle=ink; x.globalAlpha=0.3;
+    for (let i=0;i<64;i+=5){ x.fillRect(i,0,1,64); x.fillRect(0,i,64,1); } const tx=new THREE.CanvasTexture(c); tx.encoding=THREE.sRGBEncoding; 
+    return new THREE.MeshStandardMaterial({map:tx,roughness:.85}); };
+  return [mk('#26231f'),mk('#b3362c')]; })();
+const CHAR_S=2.4;   // the models are 0.67 tall; this makes them about 1.6, chunky but not giant
+function villager(o){
+  const pool=(o.vip?[CHAR_VIP]:o.woman?CHAR_F:CHAR_M).filter(n=>CHAR.src[n]);
+  if (!pool.length) return null;
+  const src=CHAR.src[pick(pool)], m=THREE.SkeletonUtils.clone(src.scene); m.scale.setScalar(CHAR_S);
+  m.traverse(c=>{ if (c.isMesh){ c.castShadow=true; c.receiveShadow=true; c.frustumCulled=false; } });
+  const g=new THREE.Group(); g.add(m); scene.add(g);
+  // village dress: a keffiyeh with a black agal for most men, a headscarf for most women (the face stays open)
+  // Kenney heads are cubes; swap in a round head with a face, keffiyeh or headscarf (the body and its animations stay)
+  const hb=m.getObjectByName('head');
+  if (hb){
+    m.updateMatrixWorld(true); const ws=new THREE.Vector3(); hb.getWorldScale(ws); const head=new THREE.Group(); head.scale.setScalar(CHAR_S/ws.x); hb.add(head);
+    m.traverse(c=>{ if (c.name==='head-mesh') c.visible=false; });
+    const skin=pick(SKINS); sph(0.2,skin,0,0.17,0,head).scale.set(1,1.06,1);
+    sph(0.034,skin,0,0.14,0.2,head);
+    for (const sx of [-1,1]) sph(0.022,'#1d1a17',sx*0.07,0.2,0.18,head);
+    if (o.vip){ add(new THREE.SphereGeometry(0.21,18,10,0,Math.PI*2,0,Math.PI/2),soft('#e8b934'),0,0.2,0,head); cyl(0.13,0.13,0.02,'#e8b934',0,0.21,0.17,head,14).scale.z=0.9; }
+    else if (o.woman){
+      if (Math.random()<0.7){ const sc=sph(0.215,o.scarf||pick(SCARVES),0,0.19,-0.05,head); sc.scale.set(1.06,1.1,1.02); }
+      else { const hr=sph(0.21,pick(['#2a221c','#4a3424','#1d1a17']),0,0.2,-0.04,head); hr.scale.set(1.04,1.04,1); }
+    } else {
+      if (Math.random()<0.6) cap(0.016,0.09,'#3a2c22',0,0.1,0.19,head).rotation.z=Math.PI/2;
+      if (o.hat==='none') add(new THREE.SphereGeometry(0.205,18,10,0,Math.PI*2,0,Math.PI/2.3),soft(pick(['#2a221c','#3b2a1d','#1d1a17'])),0,0.19,-0.005,head);
+      else { const r0=Math.random(), mat=r0<0.4?soft('#f2f0ea'):KEF[r0<0.75?0:1];
+        const top=add(new THREE.SphereGeometry(0.225,18,14),mat,0,0.24,0,head); top.scale.set(1.03,0.72,1.03);
+        add(new THREE.SphereGeometry(0.22,18,14),mat,0,0.12,-0.07,head);
+        const r=add(new THREE.TorusGeometry(0.2,0.022,8,20),soft('#1d1a17'),0,0.33,0,head); r.rotation.x=Math.PI/2; }
+    }
+  }
+  const clips=charClips(src), mixer=new THREE.AnimationMixer(m), on=new Map();
+  const p={g,k:true,mixer,legs:[],arms:[new THREE.Object3D(),new THREE.Object3D()],carry:o.carry,walk:0,ut:-1,want:'',workT:0};
+  // carried things sit in front of the chest, the tin in the right hand
+  let load=null;
+  if (o.carry==='sack'){ load=sph(0.3,"#eee3c8",0,0.8,0.36,g); load.scale.set(1,0.85,0.75); }
+  else if (o.carry==='crate'){ load=new THREE.Group(); load.position.set(0,0.78,0.4); g.add(load); box(0.6,0.38,0.42,'#e07a2e',0,0,0,load); blob(0.2,'#3d2645',0,0.16,0,load,0).scale.set(1.2,0.35,0.9); }
+  const tin=new THREE.Group(); tin.position.set(-0.26,0.62,0.3); g.add(tin);
+  if (o.unit==='case'){ box(0.36,0.36,0.36,'#c8a26b',0,0,0,tin); box(0.37,0.09,0.37,'#3f7d3a',0,0.05,0,tin); } else { box(0.3,0.4,0.3,'#c9cfd3',0,0,0,tin); box(0.31,0.05,0.31,'#e8b934',0,0.03,0,tin); }
+  tin.visible=false; p.load=load; p.tin=tin;
+  p.set=key=>{ if (key===p.want) return; p.want=key;
+    const names=key==='work'?['work']:key.split('+');
+    for (const [n,a] of on) if (!names.includes(n)){ a.fadeOut(0.18); on.delete(n); }
+    for (const n of names) if (!on.has(n)){ const a=mixer.clipAction(clips[n]); a.reset().fadeIn(0.18).play(); if (n==='work'){ a.setLoop(THREE.LoopOnce,1); a.clampWhenFinished=false; } on.set(n,a); } };
+  p.upd=(dt,moving)=>{ if (p.ut===t) return; p.ut=t;
+    if (p.workT>0){ p.workT-=dt; p.set('work'); }
+    else { const arms=p.load&&p.load.visible?'hold':p.tin.visible?'holdR':''; p.set(arms?(moving?'walkB':'idleB')+'+'+arms:(moving?'walk':'idle')); }
+    mixer.update(dt*(moving?1.5:1)); };
+  p.poke=()=>{ p.workT=clips.work.duration*0.9; };
+  p.upd(0.01,false);
+  return p;
+}
 function makePerson(o={}){
+  { const v=villager(o); if (v) return v; }
   const g=new THREE.Group(); scene.add(g);
   const skin=o.skin||pick(SKINS), shirt=o.shirt||pick(SHIRTS), woman=o.woman;
   const legs=[], arms=[];
@@ -627,9 +713,10 @@ function makePerson(o={}){
   const tin=new THREE.Group(); tin.position.set(0,-0.62,0.05); arms[1].add(tin);
   if (o.unit==='case'){ box(0.4,0.4,0.4,'#c8a26b',0,0,0,tin); box(0.41,0.1,0.41,'#3f7d3a',0,0.05,0,tin); } else { box(0.34,0.44,0.34,'#c9cfd3',0,0,0,tin); box(0.35,0.06,0.35,'#e8b934',0,0.03,0,tin); }
   tin.visible=false;
-  return {g,legs,arms,load,carry:o.carry,tin,walk:0};
+  const p={g,legs,arms,load,carry:o.carry,tin,walk:0}; p.poke=()=>{ arms[1].rotation.x=-1.2; }; return p;
 }
 function pose(p,dt,moving){
+  if (p.k) return p.upd(dt,moving);
   if (moving){ p.walk+=dt*9; p.legs[0].rotation.x=Math.sin(p.walk)*0.55; p.legs[1].rotation.x=-Math.sin(p.walk)*0.55; }
   else p.legs.forEach(l=>l.rotation.x*=0.8);
   if (p.load && p.load.visible) p.arms.forEach(a=>a.rotation.x= p.carry==='sack'?2.5:-1.2);
@@ -644,7 +731,7 @@ function moveTo(p,tx,tz,speed,dt){
   let a=Math.atan2(dx,dz)-p.g.rotation.y; a=Math.atan2(Math.sin(a),Math.cos(a)); p.g.rotation.y+=a*Math.min(1,dt*8);
   pose(p,dt,true); return false;
 }
-function face(p,angle,dt){ let a=angle-p.g.rotation.y; a=Math.atan2(Math.sin(a),Math.cos(a)); p.g.rotation.y+=a*Math.min(1,dt*6); }
+function face(p,angle,dt){ if (p.k) p.upd(dt,false); let a=angle-p.g.rotation.y; a=Math.atan2(Math.sin(a),Math.cos(a)); p.g.rotation.y+=a*Math.min(1,dt*6); }
 
 
 // ---------- sound: synthesized with Web Audio, unlocks on the first touch ----------
@@ -1000,7 +1087,7 @@ function arriveGap(){
 }
 function spawnFarmer(){
   const woman=Math.random()<0.35;
-  const f=makePerson({woman,hat:pick(['kef','kef','cap','straw']),moustache:!woman&&Math.random()<.6,carry:L().carry});
+  const f=makePerson({woman,hat:pick(['kef','kef','kef','none']),moustache:!woman&&Math.random()<.6,carry:L().carry});
   const sx=Math.min(-18,-(L().hw+(G.bays>>1)*L().bw)-8);
   if (queue.length>=QMAX){ f.g.position.set(sx,0,6.6); f.angry=true; f.phase=0; leaving.push(f); return; }
   f.g.position.set(sx,0,5.4); queue.push(f);
@@ -1029,19 +1116,19 @@ function update(dt){
     if (customers.filter(c=>c.phase<2).length<6){
       // now and then a VIP buyer in a suit and gold cap pays triple
       const vip=G.lt>90 && Math.random()<0.06 && !customers.some(c=>c.vip), woman=!vip&&Math.random()<0.5;
-      const c=makePerson(vip?{hat:'cap',capColor:'#e8b934',shirt:'#23262c',pants:'#23262c',unit:L().unit}:{woman,hat:pick(['straw','kef','cap']),moustache:!woman&&Math.random()<.5,unit:L().unit});
+      const c=makePerson(vip?{vip:true,hat:'cap',capColor:'#e8b934',shirt:'#23262c',pants:'#23262c',unit:L().unit}:{woman,hat:pick(['kef','kef','none']),moustache:!woman&&Math.random()<.5,unit:L().unit});
       c.g.position.set(16,0,15); c.phase=0; c.wait=0; customers.push(c);
       if (vip){ c.vip=true; c.tag=ov('vipt','VIP · pays ×3'); banner('VIP buyer!','He pays triple. Don\'t keep him waiting.',3); sfx('up'); } } }
   customers.filter(c=>c.phase<2).forEach((c,i)=>{ const [x,z]=cSlot(i); if (moveTo(c,x,z,2.6,dt)){ face(c,Math.PI,dt); if (i===0) c.phase=1; } c.wait+=dt;
     if (c.wait>25){ c.phase=2; G.lost++; sfx('bad'); floatAt(c.g.position.x,2.8,c.g.position.z,'Left without oil','bad'); } });
   for (let i=customers.length-1;i>=0;i--){ const c=customers[i]; if (c.phase===2 && moveTo(c,30,5.0,2.6,dt)){ scene.remove(c.g); if (c.tag) c.tag.remove(); customers.splice(i,1); } }
   for (const key in workers){ const w=workers[key]; if (!w) continue; const k=w.k, i=w.i;
-    face(w,w.face,dt); w.arms[1].rotation.x*=0.92;
+    face(w,w.face,dt); if (!w.k) w.arms[1].rotation.x*=0.92;
     if (cool[key]>0){ cool[key]-=dt; continue; }
     if (MACH(k)){ if (runs[k][i]) w.busy=true;
       else if (w.busy){ w.busy=false; cool[key]=delayOf(k,G.st[k].w[i]); }   // a slower worker takes longer to reload after each batch
-      else if (hasInput(k)){ startMachine(k,i); w.busy=true; w.arms[1].rotation.x=-1.2; } }
-    else if (canDo(k)){ doAction(k); cool[key]=delayOf(k,G.st[k].w); w.arms[1].rotation.x=-1.2; }
+      else if (hasInput(k)){ startMachine(k,i); w.busy=true; w.poke(); } }
+    else if (canDo(k)){ doAction(k); cool[key]=delayOf(k,G.st[k].w); w.poke(); }
   }
   for (const k of ['mill','press']) mh[k].forEach((h,i)=>{ const r=runs[k][i]; h(r, r?r.t/r.dur:0, dt, t); });
   pileMeshes.forEach((s,k)=>s.visible=k<sacks);
@@ -1061,7 +1148,7 @@ const lineCost=()=>plotCost(6000*Math.pow(1.6,G.plot.extra.length));
 const plotEarn=()=>price()*L().batch;
 const plotOn=()=>G.plot.press&&G.plot.don;
 const plotRate=()=>plotOn()?plotLines().reduce((a,l)=>a+plotEarn()/PT[l-1],0):0;
-let PG=null, plotH=[], plotOff=false; const plotRuns=[];
+let PG=null, plotH=[], plotOff=false, plotPeople=[]; const plotRuns=[];
 function smallSign(text,parent,x,z){
   const c=document.createElement('canvas'); c.width=256; c.height=96; const x2=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
   const paint=()=>{ x2.fillStyle='#f3e6c4'; x2.fillRect(0,0,256,96); x2.fillStyle='#a8452f'; x2.font='44px "Lilita One", sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(text,128,52); tex.needsUpdate=true; };
@@ -1081,12 +1168,12 @@ function plotBay(i,last){
   const ox=P_BW/2-0.13; for (const zz of [-3.9,3.0]) box(0.25,3.5,0.25,'#7a5a3a',ox,2.05,zz,g);
   box(0.2,0.2,7.2,'#7a5a3a',ox,3.8,-0.45,g); for (const zz of [-3.9,-1.4,1.1]) box(P_BW,0.15,0.15,'#7a5a3a',0,3.92,zz,g);
   if (last) box(0.3,0.9,7.2,'#d6c7a6',ox,0.75,-0.6,g);
-  const w=makePerson({hat:pick(['kef','cap'])}); g.add(w.g); w.g.position.set(2.8,0.3,0.4); w.g.rotation.y=Math.PI;
+  const w=makePerson({hat:'kef'}); g.add(w.g); plotPeople.push(w); w.g.position.set(2.8,0.3,0.4); w.g.rotation.y=Math.PI;
   return {mill:stoneMill(g,-2.6,-1.0), press:screwPress(g,2.8,-1.5)};
 }
 function buildPlot(){
   if (PG) scene.remove(PG);
-  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotH=[];
+  PG=new THREE.Group(); PG.position.set(PX,0,PZ); scene.add(PG); plotH=[]; plotPeople=[];
   const P=G.plot, W=13, D=9;
   if (!P.land){
     for (const [x,z] of [[-W/2,-D/2],[W/2,-D/2],[-W/2,D/2],[W/2,D/2]]) box(0.16,1.0,0.16,'#7a5a3a',x,0.5,z,PG);
@@ -1103,7 +1190,7 @@ function buildPlot(){
     PAR=PG; plotH.push(buildVillage()); PAR=scene;
     // the first donkey only shows up once you buy him
     PG.traverse(o=>{ if (o.isGroup && o.position.x===-2.9 && o.position.y===-0.6) o.visible=!!P.don; });
-    const w=makePerson({hat:'kef',moustache:true}); PG.add(w.g); w.g.position.set(2.9,0.3,0.5); w.g.rotation.y=Math.PI;
+    const w=makePerson({hat:'kef',moustache:true}); PG.add(w.g); plotPeople.push(w); w.g.position.set(2.9,0.3,0.5); w.g.rotation.y=Math.PI;
     smallSign('Plot 2',PG,0,D/2+0.2);
     P.extra.forEach((_,i)=>plotH.push(plotBay(i,i===P.extra.length-1)));
   }
@@ -1111,6 +1198,7 @@ function buildPlot(){
   placePlot();
 }
 function plotTick(dt){
+  for (const w of plotPeople) if (w.k) w.upd(dt,false);
   if (!plotOn()) return;
   plotLines().forEach((l,i)=>{ const r=plotRuns[i], h=plotH[i]; if (!r||!h) return;
     r.dur=PT[l-1]; r.t+=dt;
@@ -1243,6 +1331,8 @@ function ui(){
 }
 
 // ---------- boot ----------
+loadChars().then(boot);
+function boot(){
 const saved=load();
 if (saved){ G={...fresh(),...saved}; delete G.savedAt; delete G.live;
   for (const k of ['mill','press']){ if (!G.st[k].u) G.st[k]={u:[G.st[k].m||1],w:G.st[k].w||0};
@@ -1283,6 +1373,7 @@ function frame(now){
 }
 setTimeout(hideHint,8000);
 requestAnimationFrame(frame);
+}
 })();
 </script>
 <script>
